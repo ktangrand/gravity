@@ -5,10 +5,10 @@ const { createNoise2D } = require('simplex-noise');
 const noise2D = createNoise2D();
 const { SpaceObject, Projectile, Player } = require('./public/shared');
 const { distance, findSafeSpawnLocation } = require('./public/util');
-const WORLD_WIDTH = 2000;
-const WORLD_HEIGHT = 2000;
+const WORLD_WIDTH = 10000;
+const WORLD_HEIGHT = 10000;
 
-const GRAVITATIONAL_CONSTANT = 0.0005
+const GRAVITATIONAL_CONSTANT = 0.002
 const PROJECTILE_SPEED = 2
 
 const app = express();
@@ -28,8 +28,8 @@ const players = {};
 
 
 function createRandomSpaceObject() {
-  const gridSize = 40; // Adjust this to change the number of potential object locations
-  const scale = 0.5; // Adjust this to change the scale of the noise
+  const gridSize = 100; // Adjust this to change the number of potential object locations
+  const scale = 0.1; // Adjust this to change the scale of the noise
   
   // Create a grid of potential locations
   const xGrid = Math.floor(Math.random() * gridSize);
@@ -45,15 +45,15 @@ function createRandomSpaceObject() {
 
   let mass;
   const type = Math.random();
-  if (type < 0.6) {
+  if (type < 0.3) {
     // 60% chance to create a medium asteroid
     mass = Math.floor(Math.random() * (1000000 - 100000)) + 100000;
-  } else if (type < 0.9) {
+  } else if (type < 0.8) {
     // 30% chance to create a large planet
-    mass = Math.floor(Math.random() * (2000000 - 1000000)) + 1000000;
+    mass = Math.floor(Math.random() * (4000000 - 1000000)) + 1000000;
   } else {
     // 10% chance to create a massive star
-    mass = Math.floor(Math.random() * (3000000 - 2000000)) + 2000000;
+    mass = Math.floor(Math.random() * (8000000 - 2000000)) + 2000000;
   }
   
   return new SpaceObject(x, y, mass);
@@ -76,7 +76,7 @@ function calculateForce(object1, object2) {
   return { forceX, forceY };
 }
 
-const spaceObjects = Array.from({ length: 10 }, () => createRandomSpaceObject());
+const spaceObjects = Array.from({ length: 100 }, () => createRandomSpaceObject());
 
 io.on("connection", (socket) => {
   console.log("a user connected:", socket.id);
