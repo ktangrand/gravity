@@ -32,17 +32,11 @@ class SpaceObject {
     this.x = x;
     this.y = y;
     this.mass = mass;
-  }
-
-  draw(ctx, offsetX, offsetY, color) {
-    ctx.beginPath();
-    ctx.arc(this.x - offsetX, this.y - offsetY, this.mass / 50000, 0, 2 * Math.PI);
-    ctx.fillStyle = color;
-    ctx.fill();
+    this.radius = mass / 50000;
   }
 
   contains(x, y) {
-    return (x - this.x) ** 2 + (y - this.y) ** 2 < (this.mass / 50000) ** 2;
+    return (x - this.x) ** 2 + (y - this.y) ** 2 < this.radius ** 2;
   }
 }
 
@@ -53,6 +47,7 @@ class Projectile {
     this.velocityX = velocityX;
     this.velocityY = velocityY;
     this.mass = 1;
+    this.radius = 5;
     this.isFired = false;
   }
 
@@ -67,13 +62,6 @@ class Projectile {
   update() {
     this.x += this.velocityX;
     this.y += this.velocityY;
-  }
-
-  draw(ctx, offsetX, offsetY, color) {
-    ctx.beginPath();
-    ctx.arc(this.x - offsetX, this.y - offsetY, 5, 0, 2 * Math.PI);
-    ctx.fillStyle = color;
-    ctx.fill();
   }
 }
 
