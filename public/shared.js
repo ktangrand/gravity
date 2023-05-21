@@ -1,6 +1,3 @@
-const PROJECTILE_START_X = 0;
-const PROJECTILE_START_Y = 0;
-
 class Player {
   constructor(id, x, y) {
     this.id = id;
@@ -8,21 +5,16 @@ class Player {
     this.y = y;
     this.homePlanet = new SpaceObject(this.x, this.y, 1000000)
     this.angle = 0;
-    this.projectile = new Projectile(this.x, this.y, 0, 0);
-  }
-
-  resetProjectile() {
-    this.projectile.resetProjectile(this.x, this.y);
+    this.projectile = null;
   }
 
   update() {
-    this.projectile.update();
+    this.projectile?.update();
   }
 
   fire() {
     this.projectile.velocityX = PROJECTILE_SPEED * Math.cos(this.angle);
     this.projectile.velocityY = PROJECTILE_SPEED * Math.sin(this.angle);
-    this.projectile.isFired = true;
   }
 }
 
@@ -48,15 +40,7 @@ class Projectile {
     this.velocityY = velocityY;
     this.mass = 1;
     this.radius = 5;
-    this.isFired = false;
-  }
-
-  resetProjectile(x, y) {
-    this.x = x;
-    this.y = y;
-    this.velocityX = 0;
-    this.velocityY = 0;
-    this.isFired = false;
+    this.firedAt = Date.now();
   }
 
   update() {
