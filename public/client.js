@@ -35,15 +35,7 @@ socket.on("playerConnected", (data) => {
 
 
 socket.on("gameStateUpdate", (data) => {
-  projectiles = [];
-  for (const p in data.projectiles) {
-    projectiles.push({
-      id: p.id,
-      x: p.x,
-      y: p.y,
-      radius: 5
-    });
-  }
+  projectiles = data.projectiles;
   render();
 });
 
@@ -64,15 +56,11 @@ window.addEventListener("keydown", ({key}) => {
   } else if (["Home", "h"].includes(key)) {
     cameraX = currentPlayer.x;
     cameraY = currentPlayer.y;
-    killCam = false;
-  } else if (["q"].includes(key)) {
-    killCam = currentPlayer.id in projectiles;
   }
 });
 
 canvas.addEventListener("mousedown", ({clientX, clientY}) => {
   isMouseDown = true;
-  killCam = false;
   prevMouseX = clientX;
   prevMouseY = clientY;
 });
@@ -81,13 +69,10 @@ canvas.addEventListener("mousemove", ({clientX, clientY}) => {
   if (isMouseDown) {
     const deltaX = (clientX - prevMouseX) / zoom;
     const deltaY = (clientY - prevMouseY) / zoom;
-
     cameraX -= deltaX;
     cameraY -= deltaY;
-
     prevMouseX = clientX;
     prevMouseY = clientY;
-
     render();
   }
 });
@@ -103,10 +88,6 @@ canvas.addEventListener("wheel", (event) => {
     let zoom0 = zoom;
     zoom -= scaleFactor * Math.sign(event.deltaY);
     zoom = Math.min(Math.max(zoom, 0.1), 3);
-    if (!killCam) {
-      cameraX += ((event.clientX - canvas.mx) * (zoom - zoom0)) / zoom;
-      cameraY += ((event.clientY - canvas.my) * (zoom - zoom0)) / zoom;
-    }
     render();
   }
 });
@@ -137,16 +118,9 @@ function draw({x, y, radius}, color) {
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.save();
-
-  if(killCam &&= currentPlayer.id in projectiles) {
-    cameraX = projectiles[currentPlayer.id].x;
-    cameraY = projectiles[currentPlayer.id].y;
-  }
-
-  // Draw space objects
   spaceObjects.forEach(o => draw(o, 'gray'));
-
   draw(currentPlayer, 'blue'); 
+
   ctx.beginPath();
   ctx.moveTo(...w2c(currentPlayer.x, currentPlayer.y));
   ctx.lineTo(...w2c(currentPlayer.x + projSpeed * 10 * Math.cos(currentPlayer.angle),
@@ -155,10 +129,9 @@ function render() {
   ctx.lineWidth = 3;
   ctx.stroke();
 
-  // Draw projectiles
-  for (const p in projectiles) {
-    draw(p, p.id === currentPlayer.id ? "red" : "green");
-  }
+  projectiles.forEach((p) => {
+    draw({...p, radius: 5}, p.id === currentPlayer.id ? "red" : "green");
+  });
 
   ctx.restore();
   drawHUD();
