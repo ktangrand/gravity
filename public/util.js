@@ -9,7 +9,8 @@ function findSafeSpawnLocation(spaceObjects, WORLD_WIDTH, WORLD_HEIGHT) {
     safe = true;
 
     for (const spaceObject of spaceObjects) {
-      if (distance(x, y, spaceObject.x, spaceObject.y) < safeDistance) {
+      const distance = Math.sqrt((spaceObject.x - x)**2 + (spaceObject.y - y)**2);
+      if (distance < safeDistance) {
         safe = false;
         break;
       }

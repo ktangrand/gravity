@@ -5,39 +5,24 @@ const { createNoise2D } = require('simplex-noise');
 const noise2D = createNoise2D();
 const { findSafeSpawnLocation } = require('./public/util');
 
-const WORLD_WIDTH = 10000;
-const WORLD_HEIGHT = 10000;
+const WORLD_WIDTH = 10_000;
+const WORLD_HEIGHT = 10_000;
 const GRAVITATIONAL_CONSTANT = 0.002
-const PROJECTILE_SPEED = 2
 
 const app = express();
-const path = require('path');
-const { execArgv } = require('process');
-//app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static('public'));
 const server = http.createServer(app);
 const io = socketIO(server);
 const PORT = process.env.PORT || 3000;
 
 
-class Player {
-  constructor(id, x, y) {
+class SpaceObject {
+  constructor(x, y, mass, id=null) {
     this.id = id;
     this.x = x;
     this.y = y;
-    this.homePlanet = new SpaceObject(this.x, this.y, 1000000);
-    this.angle = 0;
-    this.projectile = null;
-  }
-}
-
-
-class SpaceObject {
-  constructor(x, y, mass) {
-    this.x = x;
-    this.y = y;
     this.mass = mass;
-    this.radius = mass / 50000;
+    this.radius = Math.sqrt(mass) / 20;
   }
 }
 
@@ -77,19 +62,7 @@ function createRandomSpaceObject() {
   const x = Math.floor((xNoise * 0.5 + 0.5) * WORLD_WIDTH / gridSize) + xGrid * WORLD_WIDTH / gridSize;
   const y = Math.floor((yNoise * 0.5 + 0.5) * WORLD_HEIGHT / gridSize) + yGrid * WORLD_HEIGHT / gridSize;
 
-  let mass;
-  const type = Math.random();
-  if (type < 0.3) {
-    // 60% chance to create a medium asteroid
-    mass = Math.floor(Math.random() * (1000000 - 100000)) + 100000;
-  } else if (type < 0.8) {
-    // 30% chance to create a large planet
-    mass = Math.floor(Math.random() * (4000000 - 1000000)) + 1000000;
-  } else {
-    // 10% chance to create a massive star
-    mass = Math.floor(Math.random() * (8000000 - 2000000)) + 2000000;
-  }
-
+  const mass = (Math.random() ** 4 * 20 + 1) * 800_000; 
   return new SpaceObject(x, y, mass);
 }
 
@@ -98,15 +71,19 @@ io.on("connection", (socket) => {
   console.log("a user connected:", socket.id);
   const spawnLocation = findSafeSpawnLocation(spaceObjects, WORLD_WIDTH, WORLD_HEIGHT);
 
-  const newPlayer = new Player(socket.id, spawnLocation.x, spawnLocation.y);
+  const newPlayer = new SpaceObject(spawnLocation.x, spawnLocation.y, 1_000_000, socket.id);
   players[socket.id] = newPlayer;
 
-  socket.emit("playerConnected", { currentPlayer: newPlayer, spaceObjects: spaceObjects, worldDimensions: { WORLD_WIDTH, WORLD_HEIGHT } });
+  socket.emit("playerConnected", {
+    currentPlayer: newPlayer,
+    spaceObjects: spaceObjects,
+    worldDimensions: { WORLD_WIDTH, WORLD_HEIGHT }
+  });
 
   socket.on("fireProjectile", (data) => {
     const cosA = Math.cos(data.angle);
     const sinA = Math.sin(data.angle);
-    const planet = players[socket.id].homePlanet;
+    const planet = players[socket.id];
     projectiles.push(new Projectile(
       socket.id,
       planet.x + cosA * planet.radius,
@@ -122,6 +99,7 @@ io.on("connection", (socket) => {
 
   // Remove the player from the list when they disconnect
   socket.on("disconnect", () => {
+    // todo: cancelProjectiles
     delete players[socket.id];
     console.log("a user disconnected:", socket.id);
   });
@@ -147,20 +125,15 @@ function gravity(spaceObject, projectile) {
   return projectile;
 }
 
+
 function updateProjectile(p) {
   p.x += p.velocityX;
   p.y += p.velocityY;
-  for(const spaceObject of spaceObjects) {
-    p = gravity(spaceObject, p);
+  for(const planet of [...spaceObjects, ...Object.values(players)]) {
+    if(planet.id === p.id) continue; // No gravity for own planet
+    p = gravity(planet, p);
     if(!p) {
-      return null;
-    }
-  }
-  for(const id in players) {
-    if(id === p.id) continue; // No gravity for own planet
-    p = gravity(players[id].homePlanet, p);
-    if(!p) {
-      // Hit player[id]!!
+      // todo: handle Projectile from player[p.id] hit planet
       return null;
     }
   }
@@ -168,16 +141,23 @@ function updateProjectile(p) {
 }
 
 
-// Update game state and send it to clients periodically
-setInterval(() => {
-  projectiles = projectiles.map(updateProjectile).filter(Boolean);
-
+function pushGameState() {
   const now = Date.now();
-  const projectilesForClients = projectiles.filter(p => now - p.firedAt > 1000)
-                                           .map(p => {return {id: p.id, x: p.x, y: p.y}});
-  // Send the updated game state to all clients
-  io.emit("gameStateUpdate", { projectiles: projectilesForClients });
-}, 1000 / 60);
+  io.emit("gameStateUpdate", { 
+    projectiles: projectiles.filter(p => now - p.firedAt > 1000)
+                            .map(p => {return {id: p.id, x: p.x, y: p.y}})
+  });  
+}
+
+
+function gameLoop() {
+  // Update projectiles (remove when null)
+  projectiles = projectiles.map(updateProjectile).filter(Boolean);
+  pushGameState();
+}
+
+
+setInterval(gameLoop, 1000 / 60);
 
 
 server.listen(PORT, () => {

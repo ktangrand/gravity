@@ -1,46 +1,32 @@
 const socket = io();
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-let currentPlayer;
+
+let currentPlayer = {id: null, x: 0, y: 0, radius: 0, angle: 0};
 let cameraX = 0;
 let cameraY = 0;
 let prevMouseX = 0;
 let prevMouseY = 0;
 let isMouseDown = false;
-let killCam = false;
 let projectiles = [];
 let spaceObjects = [];
 let zoom = 1;
-let projSpeed = 2.0;
+let projSpeed = 10.0;
 
 
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+// Socket events:
 
-socket.on("playerConnected", (data) => {
-  const playerData = data.currentPlayer;
-  currentPlayer = {
-    id: playerData.id,
-    x: playerData.x,
-    y: playerData.y,
-    radius: 1000000 / 50000,
-    angle: 0
-  };
-  spaceObjects = data.spaceObjects;
-  WORLD_WIDTH = data.worldDimensions.WORLD_WIDTH;
-  WORLD_HEIGHT = data.worldDimensions.WORLD_HEIGHT;
-
-  cameraX = currentPlayer.x;
-  cameraY = currentPlayer.y;
-});
-
+socket.on("playerConnected", (data) => initGame(data));
 
 socket.on("gameStateUpdate", (data) => {
   projectiles = data.projectiles;
-  render();
 });
 
-// Event listeners for user input
-window.addEventListener("keydown", ({key}) => {
+
+// User events:
+
+function keyDownEvent({key}) {
   if (["ArrowLeft", "a"].includes(key)) {
     currentPlayer.angle -= 0.02;
   } else if (["ArrowRight", "d"].includes(key)) {
@@ -57,15 +43,19 @@ window.addEventListener("keydown", ({key}) => {
     cameraX = currentPlayer.x;
     cameraY = currentPlayer.y;
   }
-});
+};
 
-canvas.addEventListener("mousedown", ({clientX, clientY}) => {
+function mouseDownEvent({clientX, clientY}) {
   isMouseDown = true;
   prevMouseX = clientX;
   prevMouseY = clientY;
-});
+};
 
-canvas.addEventListener("mousemove", ({clientX, clientY}) => {
+function mouseUpEvent() {
+  isMouseDown = false;
+};
+
+function mouseMoveEvent({clientX, clientY}) {
   if (isMouseDown) {
     const deltaX = (clientX - prevMouseX) / zoom;
     const deltaY = (clientY - prevMouseY) / zoom;
@@ -73,79 +63,117 @@ canvas.addEventListener("mousemove", ({clientX, clientY}) => {
     cameraY -= deltaY;
     prevMouseX = clientX;
     prevMouseY = clientY;
-    render();
   }
-});
+};
 
-canvas.addEventListener("mouseup", () => {
-  isMouseDown = false;
-});
-
-canvas.addEventListener("wheel", (event) => {
+function mouseWheelEvent(event) {
   event.preventDefault();
   const scaleFactor = 0.05;
   if (event.deltaY != 0) {
     let zoom0 = zoom;
     zoom -= scaleFactor * Math.sign(event.deltaY);
     zoom = Math.min(Math.max(zoom, 0.1), 3);
-    render();
   }
-});
+};
 
 
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  canvas.mx = canvas.width / 2;
-  canvas.my = canvas.height / 2;
-  render();
-}
-
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
+// GFX:
 
 function w2c(x, y) {
   return [(x - cameraX) * zoom + canvas.mx, (y - cameraY) * zoom + canvas.my];
 }
 
-function draw({x, y, radius}, color) {
+function circle(x, y, radius, color) {
   ctx.beginPath();
   ctx.arc(...w2c(x, y) , zoom * radius, 0, 2 * Math.PI);
   ctx.fillStyle = color;
   ctx.fill();
 }
 
-function render() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.save();
-  spaceObjects.forEach(o => draw(o, 'gray'));
-  draw(currentPlayer, 'blue'); 
-
+function drawPlayer(p) {
+  circle(p.x, p.y, p.radius, 'blue'); 
   ctx.beginPath();
-  ctx.moveTo(...w2c(currentPlayer.x, currentPlayer.y));
-  ctx.lineTo(...w2c(currentPlayer.x + projSpeed * 10 * Math.cos(currentPlayer.angle),
-                    currentPlayer.y + projSpeed * 10 * Math.sin(currentPlayer.angle)));
+  ctx.moveTo(...w2c(p.x, p.y));
+  ctx.lineTo(...w2c(p.x + projSpeed * 6 * Math.cos(p.angle), p.y + projSpeed * 6 * Math.sin(p.angle)));
   ctx.strokeStyle = "black";
   ctx.lineWidth = 3;
   ctx.stroke();
-
-  projectiles.forEach((p) => {
-    draw({...p, radius: 5}, p.id === currentPlayer.id ? "red" : "green");
-  });
-
-  ctx.restore();
-  drawHUD();
 }
 
+function drawSpaceObject(o) {
+  circle(o.x, o.y, o.radius, 'gray');
+}
+
+function drawProjectile(p) {
+  circle(p.x, p.y, 20, 'rgba(255, 255, 0, 0.5');
+  circle(p.x, p.y, 10, p.id === currentPlayer.id ? "green" : "red");
+}
 
 function drawHUD() {
   ctx.save();
-
   ctx.font = "20px Arial";
   ctx.fillStyle = "black";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.fillText(`Initial Thrust: ${projSpeed.toFixed(1)}`, 10, 10);
-
   ctx.restore();
 }
+
+
+// Gameloop:
+
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  spaceObjects.forEach(o => drawSpaceObject(o));
+  drawPlayer(currentPlayer);
+  projectiles.forEach(p => drawProjectile(p));
+  ctx.restore();
+  drawHUD();
+}
+
+function gameLoop() {
+  // updateGameObjects();
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+
+// Init:
+
+function initPlayer(playerData) {
+  currentPlayer = {
+    id: playerData.id,
+    x: playerData.x,
+    y: playerData.y,
+    radius: playerData.radius,
+    angle: 0
+  };  
+}
+
+function initGame(data) {
+  initPlayer(data.currentPlayer);
+  spaceObjects = data.spaceObjects;
+  WORLD_WIDTH = data.worldDimensions.WORLD_WIDTH;
+  WORLD_HEIGHT = data.worldDimensions.WORLD_HEIGHT;
+  cameraX = currentPlayer.x;
+  cameraY = currentPlayer.y;
+
+  window.addEventListener("keydown", keyDownEvent);
+  canvas.addEventListener("mousedown", mouseDownEvent);
+  canvas.addEventListener("mousemove", mouseMoveEvent);
+  canvas.addEventListener("mouseup", mouseUpEvent);
+  canvas.addEventListener("wheel", mouseWheelEvent);
+  // Start game
+  gameLoop();
+};
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.mx = canvas.width / 2;
+  canvas.my = canvas.height / 2;
+}
+
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
