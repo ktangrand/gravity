@@ -7,13 +7,61 @@
 </head>
 <body>
   <canvas id="gameCanvas" width="800" height="800"></canvas>
+  <div id="HUD">
+    <table>
+      <tr>
+        <td>Power</td>
+        <td id="power">0</td>
+      </tr>
+      <tr>
+        <td>Angle</td>
+        <td id="angle">0</td>
+      </tr>
+      <tr>
+        <td>x</td>
+        <td id="x">0</td>
+      </tr>
+      <tr>
+        <td>y</td>
+        <td id="y">0</td>
+      </tr>
+    </table>
+  </div>
   <script src="/socket.io/socket.io.js"></script>
   <script type ="module" src="client.js"></script>
   <style>
     body {
       margin: 0;
       padding: 0;
-      overflow: hidden; /* Optional: This hides any potential scrollbars */
+      overflow: hidden;
+      background-color: black;
+    }
+
+    canvas {
+      position: absolute;
+      z-index: 1;
+    }
+
+    #HUD {
+      pointer-events: none;
+      z-index: 2;
+      display: block;
+      position: fixed;
+      width: 150px;
+      float: left;
+      color: white;
+      font-family: monospace;
+      font-size: large;
+      background-color: rgba(200, 200, 200, 0.1);
+      border: 3px solid yellow;
+    }
+
+    #HUD table {
+      width: 100%
+    }
+
+    td + td {
+      text-align: right;
     }
   </style>
 </body>

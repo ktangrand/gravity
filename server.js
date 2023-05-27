@@ -2,6 +2,7 @@
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
+const gameMap = require('./game-map.js');
 
 const app = express();
 app.use(express.static('public'));
@@ -11,83 +12,19 @@ const PORT = process.env.PORT || 3000;
 
 
 // =================================================================
-// Generate map
-// =================================================================
-
-function createWorld() {
-  const WIDTH = 10_000;
-  const HEIGHT = 10_000;
-  return {
-    WIDTH,
-    HEIGHT,
-    G_CONSTANT: 0.002,
-    projectiles: [],
-    spaceObjects: Array.from({ length: 100 }, () => createRandomSpaceObject(WIDTH, HEIGHT)),
-  }
-}
-
-
-function newSpaceObject(x, y, mass, id = null) {
-  return {
-    id, x, y, mass,
-    radius: Math.sqrt(mass) / 20
-  };
-}
-
-
-function newProjectile(id, x, y, velocityX, velocityY) {
-  return {
-    id, x, y, velocityX, velocityY,
-    mass: 1,
-    radius: 5,
-    firedAt: Date.now()
-  }
-}
-
-
-function createRandomSpaceObject(width, height) {
-  const x = Math.random() * width;
-  const y = Math.random() * height;
-  const mass = (Math.random() ** 4 * 20 + 1) * 800_000;
-  return newSpaceObject(x, y, mass);
-}
-
-
-function findSafeSpawnLocation(world) {
-  const safeDistance = 100; // Adjust this to change how far away new players must spawn from space objects
-  let safe = false;
-  let x, y;
-  while (!safe) {
-    x = Math.random() * world.WIDTH;
-    y = Math.random() * world.HEIGHT;
-    safe = true;
-    for (const spaceObject of world.spaceObjects) {
-      const distance = Math.sqrt((spaceObject.x - x) ** 2 + (spaceObject.y - y) ** 2);
-      if (distance < safeDistance) {
-        safe = false;
-        break;
-      }
-    }
-  }
-
-  return { x, y };
-}
-
-
-// =================================================================
 // Handle new Player
 // =================================================================
 
 io.on("connection", (socket) => {
   console.log("a user connected:", socket.id);
-  const spawnLocation = findSafeSpawnLocation(world);
-  const newPlayer = newSpaceObject(spawnLocation.x, spawnLocation.y, 1_000_000, socket.id);
+  const spawnLocation = gameMap.findSafeSpawnLocation(world);
+  const newPlayer = gameMap.newSpaceObject(spawnLocation.x, spawnLocation.y, 1_000_000, socket.id);
+  setRadius(newPlayer);
   players[socket.id] = newPlayer;
 
   socket.emit("playerConnected", {
     currentPlayer: newPlayer,
-    spaceObjects: world.spaceObjects,
-    worldDimensions: { WORLD_WIDTH: world.WIDTH, WORLD_HEIGHT: world.HEIGHT }
+    world: world,
   });
 
   socket.on("disconnect", () => {
@@ -105,11 +42,21 @@ io.on("connection", (socket) => {
 // Player actions
 // =================================================================
 
+function newProjectile(id, x, y, velocityX, velocityY) {
+  return {
+    id, x, y, velocityX, velocityY,
+    mass: 1,
+    radius: 5,
+    firedAt: Date.now()
+  }
+}
+
+
 function fireProjectile(id, angle, projSpeed) {
   const cosA = Math.cos(angle);
   const sinA = Math.sin(angle);
   const planet = players[id];
-  world.projectiles.push(newProjectile(
+  projectiles.push(newProjectile(
     id,
     planet.x + cosA * planet.radius,
     planet.y + sinA * planet.radius,
@@ -120,7 +67,7 @@ function fireProjectile(id, angle, projSpeed) {
 
 
 function cancelProjectile(id) {
-  world.projectiles = world.projectiles.filter(p => p.id !== id);
+  projectiles = projectiles.filter(p => p.id !== id);
 }
 
 
@@ -131,15 +78,29 @@ function cancelProjectile(id) {
 function pushGameState() {
   const now = Date.now();
   io.emit("gameStateUpdate", {
-    projectiles: world.projectiles.filter(p => now - p.firedAt > 1000)
+    projectiles: projectiles.filter(p => now - p.firedAt > 1000)
       .map(p => { return { id: p.id, x: p.x, y: p.y } })
   });
+  if (world.changed) {
+    io.emit("world", world);
+    world.changed = false;
+  }
+}
+
+
+function setRadius(planet) {
+  planet.radius = Math.sqrt(planet.mass) / 20;
 }
 
 
 function projectileHit(p, planet) {
-  if (!planet.id) {
-    // spaceObject
+  if (!planet.id) { // spaceObject
+    players[p.id].mass += planet.mass;
+    planet.mass = 0;
+    setRadius(players[p.id]);
+    io.to(p.id).emit("score", players[p.id].radius);
+    world.spaceObjects = world.spaceObjects.filter(planet => planet.mass);
+    world.changed = true;
   } else {
     // other player
   }
@@ -180,7 +141,7 @@ function updateProjectile(p) {
 
 function gameLoop() {
   // Update projectiles (remove when null)
-  world.projectiles = world.projectiles.map(updateProjectile).filter(Boolean);
+  projectiles = projectiles.map(updateProjectile).filter(Boolean);
   pushGameState();
 }
 
@@ -189,7 +150,11 @@ function gameLoop() {
 // Start
 // =================================================================
 
-let world = createWorld();
+let world = gameMap.createWorld();
+world.spaceObjects.forEach(p => setRadius(p));
+world.changed = false;
+
+let projectiles = [];
 const players = {};
 
 server.listen(PORT, () => {
