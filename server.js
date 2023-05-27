@@ -26,7 +26,7 @@ const baseResources = {
 io.on("connection", (socket) => {
   console.log("a user connected:", socket.id);
   const spawnLocation = gameMap.findSafeSpawnLocation(world);
-  const newPlayer = gameMap.newSpaceObject(spawnLocation.x, spawnLocation.y, 1_000_000, 'white', 100, baseResources, socket.id);
+  const newPlayer = gameMap.newSpaceObject(spawnLocation.x, spawnLocation.y, 1000000, 'white', 100, baseResources, socket.id);
   // setRadius(newPlayer);
   players[socket.id] = newPlayer;
 

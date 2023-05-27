@@ -59,8 +59,8 @@ function generateResources() {
 
 
 function createWorld() {
-    const WIDTH = 10_000;
-    const HEIGHT = 10_000;
+    const WIDTH = 20000;
+    const HEIGHT = 20000;
     return {
         WIDTH,
         HEIGHT,
