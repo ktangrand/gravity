@@ -9,8 +9,7 @@ app.use(express.static('public'));
 const server = http.createServer(app);
 const io = socketIO(server);
 const PORT = process.env.PORT || 3000;
-const {
-  ResourceType, 
+const { 
   ResourceTypeDensities 
 } = require('./game-map.js');
 
@@ -19,8 +18,9 @@ const {
 // =================================================================
 
 const baseResources = {
-  [ResourceType.BASIC_METALS]: 1000,
-  [ResourceType.EXOTIC_MINERALS]: 200
+  'titanium': 1000,
+  'antimatter': 200,
+  'metamaterials': 100
 };
 
 io.on("connection", (socket) => {
@@ -106,6 +106,13 @@ function projectileHit(p, planet) {
     players[p.id].mass += planet.mass;
     planet.mass = 0;
     setRadius(players[p.id]);
+
+    for (const res in planet.resources) {
+      players[p.id].resources[res] += planet.resources[res]
+    };
+
+    io.to(p.id).emit("res", players[p.id].resources)
+
     io.to(p.id).emit("score", players[p.id].radius);
     world.spaceObjects = world.spaceObjects.filter(planet => planet.mass);
     world.changed = true;

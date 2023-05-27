@@ -1,13 +1,8 @@
-const ResourceType = {
-  BASIC_METALS: 'basic_metals',
-  EXOTIC_MINERALS: 'exotic_minerals',
-  VOLATILE_COMPOUNDS: 'volatile_compounds'
-};
 
 const ResourceTypeDensities = {
-  [ResourceType.BASIC_METALS]: 1000,
-  [ResourceType.EXOTIC_MINERALS]: 700,
-  [ResourceType.VOLATILE_COMPOUNDS]: 400
+  'titanium': 1000,
+  'antimatter' : 700,
+  'metamaterials' : 400
 };
 
 function generateResources() {
@@ -18,26 +13,26 @@ function generateResources() {
 
   if (celestialObjectProbability < 0.6) { // 60% chance for Terrestrial Planet
     resources = {
-      [ResourceType.BASIC_METALS]: 1000,
-      [ResourceType.EXOTIC_MINERALS]: 200
+      'titanium': 1000,
+      'antimatter': 200
     };
     color = 'green';
   } else if (celestialObjectProbability < 0.8) { // 20% chance for Ice Giant
     resources = {
-      [ResourceType.BASIC_METALS]: 300,
-      [ResourceType.VOLATILE_COMPOUNDS]: 1000
+      'titanium': 300,
+      'metamaterials': 1000
     };
     color = 'blue';
   } else if (celestialObjectProbability < 0.9) { // 10% chance for Dense Metal World
     resources = {
-      [ResourceType.BASIC_METALS]: 1200,
-      [ResourceType.EXOTIC_MINERALS]: 1000
+      'titanium': 1200,
+      'antimatter': 1000
     };
     color = 'grey';
   } else { // 10% chance for Nebula
     resources = {
-      [ResourceType.EXOTIC_MINERALS]: 800,
-      [ResourceType.VOLATILE_COMPOUNDS]: 800
+      'antimatter': 800,
+      'metamaterials': 800
     };
     color = 'pink';
   }
@@ -116,6 +111,5 @@ module.exports = {
     createWorld,
     newSpaceObject,
     findSafeSpawnLocation,
-    ResourceType,
     ResourceTypeDensities
 }

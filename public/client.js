@@ -15,6 +15,7 @@ let mouse = {x: 0, y: 0};
 socket.on("playerConnected", data => initGame(data));
 socket.on("world", world => spaceObjects = world.spaceObjects);
 socket.on("score", data => player.radius = data);
+socket.on("res", data => player.resources = data);
 
 socket.on("gameStateUpdate", data => {
   projectiles = data.projectiles;
@@ -95,6 +96,9 @@ function drawHUD() {
   document.getElementById("angle").textContent = (player.angle * 180 / Math.PI).toFixed(3);
   document.getElementById("x").textContent = mouse.x;
   document.getElementById("y").textContent = mouse.y;
+  document.getElementById("titanium").textContent = player.resources["titanium"]
+  document.getElementById("antimatter").textContent = player.resources["antimatter"]
+  document.getElementById("metamaterials").textContent = player.resources["metamaterials"]
 }
 
 
