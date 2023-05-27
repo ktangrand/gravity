@@ -7,14 +7,14 @@ const ctx = canvas.getContext('2d');
 let player;
 let projectiles = [];
 let spaceObjects = [];
-let WORLD_WIDTH;
-let WORLD_HEIGHT;
 
+let mouse = {x: 0, y: 0};
 
 // Socket events:
 
 socket.on("playerConnected", data => initGame(data));
-
+socket.on("world", world => spaceObjects = world.spaceObjects);
+socket.on("score", data => player.radius = data);
 
 socket.on("gameStateUpdate", data => {
   projectiles = data.projectiles;
@@ -23,15 +23,11 @@ socket.on("gameStateUpdate", data => {
 
 // User events:
 
-let prevMouseX = 0;
-let prevMouseY = 0;
-let isMouseDown = false;
-
 function keyDownEvent({key}) {
   if (["ArrowLeft", "a"].includes(key)) {
-    player.angle -= 0.02;
+    setAngle(player.angle + 0.02);
   } else if (["ArrowRight", "d"].includes(key)) {
-    player.angle += 0.02;
+    setAngle(player.angle - 0.02);
   } else if (["ArrowUp", "w"].includes(key)) {
     player.power += 0.2;
   } else if (["ArrowDown", "s"].includes(key)) {
@@ -46,27 +42,42 @@ function keyDownEvent({key}) {
 };
 
 
-function mouseDownEvent({clientX, clientY}) {
-  isMouseDown = true;
-  prevMouseX = clientX;
-  prevMouseY = clientY;
-};
-
-
-function mouseUpEvent() {
-  isMouseDown = false;
-};
-
-
-function mouseMoveEvent({clientX, clientY}) {
-  if (isMouseDown) {
-    const deltaX = clientX - prevMouseX;
-    const deltaY = clientY - prevMouseY;
-    gfx.panCamera(deltaX, deltaY);
-    prevMouseX = clientX;
-    prevMouseY = clientY;
+function mouseDown(event) {
+  if(event.button === 0) {
+    event.preventDefault();
+    canvas.addEventListener('mouseup', stopDrag);
+    canvas.addEventListener('mouseleave', stopDrag);
+    canvas.addEventListener('mousemove', drag);
+  }
+  else if(event.button === 2) {
+    const iId = setInterval(aim, 200);
+    canvas.addEventListener('mouseup', () => clearInterval(iId));
+    canvas.addEventListener('mouseleave', () => clearInterval(iId));
   }
 };
+
+
+function stopDrag() {
+  canvas.removeEventListener('mousemove', drag);
+};
+
+
+function drag(event) {
+  gfx.panCamera(event.movementX, event.movementY);
+};
+
+
+function aim() {
+  const [wx, wy] = gfx.w2c(player.x, player.y);
+  const dx = mouse.x - wx;
+  const dy = mouse.y - wy;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  const ax = dx / (d * d * 0.1) + Math.cos(player.angle);
+  const ay = dy / (d * d * 0.1) + Math.sin(player.angle);
+  const angleToMouse = Math.atan2(dy, dx);
+
+  setAngle(Math.atan2(ay, ax));
+}
 
 
 function mouseWheelEvent(event) {
@@ -80,18 +91,15 @@ function mouseWheelEvent(event) {
 // Gameloop:
 
 function drawHUD() {
-  ctx.save();
-  ctx.font = "20px Arial";
-  ctx.fillStyle = "black";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "top";
-  ctx.fillText(`Initial Thrust: ${player.power.toFixed(1)}`, 10, 10);
-  ctx.restore();
+  document.getElementById("power").textContent = player.power.toFixed(2);
+  document.getElementById("angle").textContent = (player.angle * 180 / Math.PI).toFixed(3);
+  document.getElementById("x").textContent = mouse.x;
+  document.getElementById("y").textContent = mouse.y;
 }
 
 
 function gameLoop() {
-  gfx.render(player, spaceObjects, projectiles);
+  gfx.render(player, spaceObjects, projectiles, mouse);
   drawHUD();
   requestAnimationFrame(gameLoop);
 }
@@ -100,31 +108,32 @@ function gameLoop() {
 // Init:
 
 function initPlayer(playerData) {
-  player = {
-    id: playerData.id,
-    x: playerData.x,
-    y: playerData.y,
-    radius: playerData.radius,
+  return {
+    ...playerData,
     angle: 0,
     power: 10
   };  
 }
 
+function setAngle(r) {
+  while(r > Math.PI) r -= 2 * Math.PI;
+  while(r < -Math.PI) r += 2 * Math.PI;
+  player.angle = r; 
+}
+
 
 function initGame(data) {
-  initPlayer(data.currentPlayer);
+  player = initPlayer(data.currentPlayer);
+  spaceObjects = data.world.spaceObjects;
+  
+  gfx.setCamera(player.x, player.y);
 
-  spaceObjects = data.spaceObjects;
-  WORLD_WIDTH = data.worldDimensions.WORLD_WIDTH;
-  WORLD_HEIGHT = data.worldDimensions.WORLD_HEIGHT;
-  gfx.setCamera(player.x, player.y)
-
+  canvas.addEventListener("mousemove", e => mouse = {x: e.clientX, y: e.clientY});
+  canvas.addEventListener("mousedown", e => {});
   window.addEventListener("keydown", keyDownEvent);
-  canvas.addEventListener("mouseleave", mouseUpEvent);
-  canvas.addEventListener("mousedown", mouseDownEvent);
-  canvas.addEventListener("mousemove", mouseMoveEvent);
-  canvas.addEventListener("mouseup", mouseUpEvent);
+  canvas.addEventListener("mousedown", mouseDown);
   canvas.addEventListener("wheel", mouseWheelEvent);
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   // Start game
   gameLoop();
 };

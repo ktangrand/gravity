@@ -21,7 +21,7 @@ function panCamera(dx, dy) {
 
 
 function zoomCamera(delta) {
-    const scaleFactor = 0.05;
+    const scaleFactor = 0.02;
     zoom -= scaleFactor * delta;
     zoom = Math.min(Math.max(zoom, 0.1), 3);
 }
@@ -44,9 +44,16 @@ function drawPlayer(p) {
     circle(p.x, p.y, p.radius, 'blue');
     ctx.beginPath();
     ctx.moveTo(...w2c(p.x, p.y));
-    ctx.lineTo(...w2c(p.x + p.power * 6 * Math.cos(p.angle), p.y + p.power * 6 * Math.sin(p.angle)));
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = 3;
+    ctx.lineTo(...w2c(p.x + 20000 * Math.cos(p.angle), p.y + 20000 * Math.sin(p.angle)));
+    ctx.strokeStyle = 'rgba(255, 255, 0, 0.01)';
+    ctx.lineWidth = 8;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(...w2c(p.x, p.y));
+    ctx.lineTo(...w2c(p.x + p.power * 60 * Math.cos(p.angle), p.y + p.power * 60 * Math.sin(p.angle)));
+    ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
+    ctx.lineWidth = 2;
     ctx.stroke();
 }
 
@@ -58,13 +65,13 @@ function drawPlanet(p) {
 
 function drawProjectiles(projectiles, id) {
     projectiles.forEach((p) => {
-        circle(p.x, p.y, 20, 'rgba(255, 255, 0, 0.5');
-        circle(p.x, p.y, 10, p.id === id ? "green" : "red");
+        circle(p.x, p.y, 20, 'rgba(255, 255, 0, 0.1');
+        circle(p.x, p.y, 10, p.id === id ? 'green' : 'red');
     });
 }
 
 
-function render(player, planets, projectiles) {
+function render(player, planets, projectiles, mouse) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     planets.forEach(p => drawPlanet(p));
@@ -78,8 +85,8 @@ function init(canvasId) {
     canvas = document.getElementById(canvasId);
     mx = canvas.width / 2;
     my = canvas.height / 2;   
-    ctx = canvas.getContext("2d");
+    ctx = canvas.getContext('2d');
 }
 
 
-export { init, setCamera, panCamera, zoomCamera, render };
+export { init, setCamera, panCamera, zoomCamera, render, w2c };
