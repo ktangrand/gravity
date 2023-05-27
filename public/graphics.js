@@ -41,7 +41,7 @@ function circle(x, y, radius, color) {
 
 
 function drawPlayer(p) {
-    circle(p.x, p.y, p.radius, 'blue');
+    circle(p.x, p.y, p.radius, 'white');
     ctx.beginPath();
     ctx.moveTo(...w2c(p.x, p.y));
     ctx.lineTo(...w2c(p.x + 20000 * Math.cos(p.angle), p.y + 20000 * Math.sin(p.angle)));
@@ -59,7 +59,7 @@ function drawPlayer(p) {
 
 
 function drawPlanet(p) {
-    circle(p.x, p.y, p.radius, 'gray');
+    circle(p.x, p.y, p.radius, p.color);
 }
 
 

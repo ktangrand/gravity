@@ -9,17 +9,25 @@ app.use(express.static('public'));
 const server = http.createServer(app);
 const io = socketIO(server);
 const PORT = process.env.PORT || 3000;
-
+const {
+  ResourceType, 
+  ResourceTypeDensities 
+} = require('./game-map.js');
 
 // =================================================================
 // Handle new Player
 // =================================================================
 
+const baseResources = {
+  [ResourceType.BASIC_METALS]: 1000,
+  [ResourceType.EXOTIC_MINERALS]: 200
+};
+
 io.on("connection", (socket) => {
   console.log("a user connected:", socket.id);
   const spawnLocation = gameMap.findSafeSpawnLocation(world);
-  const newPlayer = gameMap.newSpaceObject(spawnLocation.x, spawnLocation.y, 1_000_000, socket.id);
-  setRadius(newPlayer);
+  const newPlayer = gameMap.newSpaceObject(spawnLocation.x, spawnLocation.y, 1_000_000, 'white', 100, baseResources, socket.id);
+  // setRadius(newPlayer);
   players[socket.id] = newPlayer;
 
   socket.emit("playerConnected", {
@@ -151,7 +159,7 @@ function gameLoop() {
 // =================================================================
 
 let world = gameMap.createWorld();
-world.spaceObjects.forEach(p => setRadius(p));
+// world.spaceObjects.forEach(p => setRadius(p));
 world.changed = false;
 
 let projectiles = [];

@@ -50,7 +50,7 @@ function mouseDown(event) {
     canvas.addEventListener('mousemove', drag);
   }
   else if(event.button === 2) {
-    const iId = setInterval(aim, 200);
+    const iId = setInterval(aim, 1);
     canvas.addEventListener('mouseup', () => clearInterval(iId));
     canvas.addEventListener('mouseleave', () => clearInterval(iId));
   }
