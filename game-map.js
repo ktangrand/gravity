@@ -5,6 +5,10 @@ const ResourceTypeDensities = {
   'metamaterials' : 400
 };
 
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min) + min);
+}
+
 function generateResources() {
   const celestialObjectProbability = Math.random();
 
@@ -13,26 +17,26 @@ function generateResources() {
 
   if (celestialObjectProbability < 0.6) { // 60% chance for Terrestrial Planet
     resources = {
-      'titanium': 1000,
-      'antimatter': 200
+      'titanium': getRandomInt(2000,10000),
+      'antimatter': getRandomInt(200, 1000)
     };
     color = 'green';
   } else if (celestialObjectProbability < 0.8) { // 20% chance for Ice Giant
     resources = {
-      'titanium': 300,
-      'metamaterials': 1000
+      'titanium': getRandomInt(1000, 5000),
+      'metamaterials': getRandomInt(8000, 10000)
     };
     color = 'blue';
   } else if (celestialObjectProbability < 0.9) { // 10% chance for Dense Metal World
     resources = {
-      'titanium': 1200,
-      'antimatter': 1000
+      'titanium': getRandomInt(3000, 5000),
+      'antimatter': getRandomInt(5000, 7000)
     };
     color = 'grey';
   } else { // 10% chance for Nebula
     resources = {
-      'antimatter': 800,
-      'metamaterials': 800
+      'antimatter': getRandomInt(5000,8000),
+      'metamaterials': getRandomInt(5000,8000)
     };
     color = 'pink';
   }

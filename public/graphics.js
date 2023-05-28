@@ -71,12 +71,13 @@ function drawProjectiles(projectiles, id) {
 }
 
 
-function render(player, planets, projectiles, mouse) {
+function render(player, planets, projectiles, mouse, streams) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     planets.forEach(p => drawPlanet(p));
     drawPlayer(player);
     drawProjectiles(projectiles, player.id);
+    drawResourceStreams(streams);
     ctx.restore();    
 }
 
@@ -87,6 +88,27 @@ function init(canvasId) {
     my = canvas.height / 2;   
     ctx = canvas.getContext('2d');
 }
+
+function drawResourceStreams(streams) {
+    for(let s = 0; s < streams.length; s++) {
+        const particles = streams[s];
+        for(let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            p.progress += p.speed;
+
+            const x = p.x + (p.ex - p.x) * p.progress;
+            const y = p.y + (p.ey - p.y) * p.progress;
+
+            if(p.progress >= 1) {
+                p.x = p.sx;
+                p.y = p.sy;
+                p.progress = 0;
+            }
+            circle(x, y, 10, 'rgba(255, 255, 0, 0.1)');
+        }
+    }
+}
+
 
 
 export { init, setCamera, panCamera, zoomCamera, render, w2c };

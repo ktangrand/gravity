@@ -127,7 +127,8 @@ function gravity(spaceObject, projectile) {
   const distanceY = spaceObject.y - projectile.y;
   const distance = Math.sqrt(distanceX ** 2 + distanceY ** 2);
   if (distance < spaceObject.radius + projectile.radius) {
-    projectileHit(projectile, spaceObject);
+    // projectileHit(projectile, spaceObject);
+    io.to(projectile.id).emit("probe", spaceObject)
     return null;
   }
   // Calculate the force of gravity
@@ -138,6 +139,7 @@ function gravity(spaceObject, projectile) {
 
   projectile.velocityX += forceX / projectile.mass;
   projectile.velocityY += forceY / projectile.mass;
+
   return projectile;
 }
 
