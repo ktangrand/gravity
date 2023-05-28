@@ -58,6 +58,7 @@ function drawPlayer(p) {
 }
 
 
+
 function drawPlanet(p) {
     circle(p.x, p.y, p.radius, p.color);
 }
@@ -104,7 +105,7 @@ function drawResourceStreams(streams) {
                 p.y = p.sy;
                 p.progress = 0;
             }
-            circle(x, y, 10, 'rgba(255, 255, 0, 0.1)');
+            circle(x, y, 10, p.color);
         }
     }
 }

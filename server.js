@@ -23,6 +23,8 @@ const baseResources = {
   'metamaterials': 100
 };
 
+let planetProbes = [];
+
 io.on("connection", (socket) => {
   console.log("a user connected:", socket.id);
   const spawnLocation = gameMap.findSafeSpawnLocation(world);
@@ -128,7 +130,9 @@ function gravity(spaceObject, projectile) {
   const distance = Math.sqrt(distanceX ** 2 + distanceY ** 2);
   if (distance < spaceObject.radius + projectile.radius) {
     // projectileHit(projectile, spaceObject);
-    io.to(projectile.id).emit("probe", spaceObject)
+    io.to(projectile.id).emit("probe", spaceObject);
+    planetProbes.push({playerid: projectile.id, planetid: spaceObject.id})
+    console.log(planetProbes)
     return null;
   }
   // Calculate the force of gravity

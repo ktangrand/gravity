@@ -13,7 +13,7 @@ let mouse = {x: 0, y: 0};
 
 let streams = [];
 
-function createResourceStream(startX, startY, endX, endY) {
+function createResourceStream(startX, startY, endX, endY, color) {
     const numParticles = 100;
 
     let particles = [];
@@ -27,6 +27,7 @@ function createResourceStream(startX, startY, endX, endY) {
             ey: endY,
             progress: Math.random(),
             speed: 0.001 + Math.random() * 0.002,
+            color: color
         });
     }
     streams.push(particles);
@@ -38,7 +39,7 @@ socket.on("playerConnected", data => initGame(data));
 socket.on("world", world => spaceObjects = world.spaceObjects);
 socket.on("score", data => player.radius = data);
 socket.on("res", data => player.resources = data);
-socket.on("probe", data => createResourceStream(data.x,data.y,player.x,player.y));
+socket.on("probe", data => createResourceStream(data.x,data.y,player.x,player.y,data.color));
 
 socket.on("gameStateUpdate", data => {
   projectiles = data.projectiles;
@@ -152,6 +153,9 @@ function setAngle(r) {
 function initGame(data) {
   player = initPlayer(data.currentPlayer);
   spaceObjects = data.world.spaceObjects;
+  spaceObjects.forEach(planet => {
+    planet.particles = [];
+  });
   
   gfx.setCamera(player.x, player.y);
 

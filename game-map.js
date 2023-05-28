@@ -20,25 +20,25 @@ function generateResources() {
       'titanium': getRandomInt(2000,10000),
       'antimatter': getRandomInt(200, 1000)
     };
-    color = 'green';
+    color = 'rgb(0, 128, 0)';
   } else if (celestialObjectProbability < 0.8) { // 20% chance for Ice Giant
     resources = {
       'titanium': getRandomInt(1000, 5000),
       'metamaterials': getRandomInt(8000, 10000)
     };
-    color = 'blue';
+    color = 'rgb(0, 0, 255)';
   } else if (celestialObjectProbability < 0.9) { // 10% chance for Dense Metal World
     resources = {
       'titanium': getRandomInt(3000, 5000),
       'antimatter': getRandomInt(5000, 7000)
     };
-    color = 'grey';
+    color = 'rgb(128, 128, 128)';
   } else { // 10% chance for Nebula
     resources = {
       'antimatter': getRandomInt(5000,8000),
       'metamaterials': getRandomInt(5000,8000)
     };
-    color = 'pink';
+    color = 'rgb(255, 192, 203)';
   }
 
   let totalMass = 0;
@@ -74,6 +74,9 @@ function createWorld() {
 }
 
 
+let idCounter = 0;
+
+
 function newSpaceObject(x, y, mass, color, radius, resources, id = null) {
     return {
         id, x, y, mass, color, radius, resources
@@ -84,11 +87,9 @@ function newSpaceObject(x, y, mass, color, radius, resources, id = null) {
 function createRandomSpaceObject(width, height) {
     const x = Math.random() * width;
     const y = Math.random() * height;
-    // const mass = (Math.random() ** 4 * 20 + 1) * 800_000;
-    // radius = Math.sqrt(mass) / 20;
 
     let p = generateResources();
-    return newSpaceObject(x, y, p.mass, p.color, p.radius, p.resources);
+    return newSpaceObject(x, y, p.mass, p.color, p.radius, p.resources, idCounter++);
 }
 
 
