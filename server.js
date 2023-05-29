@@ -9,27 +9,25 @@ app.use(express.static('public'));
 const server = http.createServer(app);
 const io = socketIO(server);
 const PORT = process.env.PORT || 3000;
-const { 
-  ResourceTypeDensities 
-} = require('./game-map.js');
+
 
 // =================================================================
 // Handle new Player
 // =================================================================
 
-const baseResources = {
-  'titanium': 1000,
-  'antimatter': 200,
-  'metamaterials': 100
-};
-
-let planetProbes = [];
 
 io.on("connection", (socket) => {
   console.log("a user connected:", socket.id);
   const spawnLocation = gameMap.findSafeSpawnLocation(world);
-  const newPlayer = gameMap.newSpaceObject(spawnLocation.x, spawnLocation.y, 1000000, 'white', 100, baseResources, socket.id);
-  // setRadius(newPlayer);
+  const newPlayer = {
+    x: spawnLocation.x,
+    y: spawnLocation.y,
+    mass: 1000000,
+    color: 'white',
+    radius: 100,
+    resources: baseResources,
+    id: socket.id
+  };
   players[socket.id] = newPlayer;
 
   socket.emit("playerConnected", {
@@ -98,63 +96,28 @@ function pushGameState() {
 }
 
 
-function setRadius(planet) {
-  planet.radius = Math.sqrt(planet.mass) / 20;
-}
-
-
-function projectileHit(p, planet) {
-  if (!planet.id) { // spaceObject
-    players[p.id].mass += planet.mass;
-    planet.mass = 0;
-    setRadius(players[p.id]);
-
-    for (const res in planet.resources) {
-      players[p.id].resources[res] += planet.resources[res]
-    };
-
-    io.to(p.id).emit("res", players[p.id].resources)
-
-    io.to(p.id).emit("score", players[p.id].radius);
-    world.spaceObjects = world.spaceObjects.filter(planet => planet.mass);
-    world.changed = true;
+function handleCollision(p, planet) {
+  if (true) { // Todo check if we hit other player
+    io.to(p.id).emit("probe", planet);
+    planetProbes.push({playerid: p.id, planetid: planet.id});
+    console.log(planetProbes);
   } else {
     // other player
   }
 }
 
 
-function gravity(spaceObject, projectile) {
-  const distanceX = spaceObject.x - projectile.x;
-  const distanceY = spaceObject.y - projectile.y;
-  const distance = Math.sqrt(distanceX ** 2 + distanceY ** 2);
-  if (distance < spaceObject.radius + projectile.radius) {
-    // projectileHit(projectile, spaceObject);
-    io.to(projectile.id).emit("probe", spaceObject);
-    planetProbes.push({playerid: projectile.id, planetid: spaceObject.id})
-    console.log(planetProbes)
-    return null;
-  }
-  // Calculate the force of gravity
-  const force = world.G_CONSTANT * projectile.mass * spaceObject.mass / distance ** 2;
-  // Calculate the direction of the force
-  const forceX = force * distanceX / distance;
-  const forceY = force * distanceY / distance;
-
-  projectile.velocityX += forceX / projectile.mass;
-  projectile.velocityY += forceY / projectile.mass;
-
-  return projectile;
-}
-
-
 function updateProjectile(p) {
   p.x += p.velocityX;
   p.y += p.velocityY;
-  for (const planet of [...world.spaceObjects, ...Object.values(players)]) {
-    if (planet.id === p.id) continue; // No gravity for own planet
-    p = gravity(planet, p);
-    if (!p) break;
+  const planetCollided = gameMap.checkCollision(world, p);
+  if(planetCollided) {
+    handleCollision(p, planetCollided);
+    return null;
+  } else {
+    let [fx, fy] = gameMap.gravity(world, p.x, p.y);
+    p.velocityX += fx / p.mass;
+    p.velocityY += fy / p.mass;
   }
   return p;
 }
@@ -170,11 +133,16 @@ function gameLoop() {
 // =================================================================
 // Start
 // =================================================================
+const baseResources = {
+  'titanium': 1000,
+  'antimatter': 200,
+  'metamaterials': 100
+};
 
-let world = gameMap.createWorld();
-// world.spaceObjects.forEach(p => setRadius(p));
+let world = new gameMap.createWorld();
 world.changed = false;
 
+let planetProbes = [];
 let projectiles = [];
 const players = {};
 

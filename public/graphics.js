@@ -40,6 +40,37 @@ function circle(x, y, radius, color) {
 }
 
 
+function drawResourceStreams(streams) {
+    const anim = Date.now();
+    for (const [start, end, color] of streams) {
+        const dist = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
+        let incr = 800 / dist;
+        for (let i = 0; i < 1 - incr; i += incr) {
+            let a = i + incr * (anim & 255) / 256;
+            circle(end.x - (end.x - start.x) * a, end.y - (end.y - start.y) * a, 8, color);
+        }
+        incr = 200 / dist;
+        for (let i = 0; i < 1 - incr; i += incr) {
+            let a = i + incr * (anim & 255) / 256;
+            circle(end.x - (end.x - start.x) * a, end.y - (end.y - start.y) * a, 6, color);
+        }
+    }
+}
+
+
+function drawPlanet(p) {
+    circle(p.x, p.y, p.radius, p.color);
+}
+
+
+function drawProjectiles(projectiles, id) {
+    projectiles.forEach((p) => {
+        circle(p.x, p.y, 20, 'rgba(255, 255, 0, 0.1');
+        circle(p.x, p.y, 10, p.id === id ? 'green' : 'red');
+    });
+}
+
+
 function drawPlayer(p) {
     circle(p.x, p.y, p.radius, 'white');
     ctx.beginPath();
@@ -58,58 +89,23 @@ function drawPlayer(p) {
 }
 
 
-
-function drawPlanet(p) {
-    circle(p.x, p.y, p.radius, p.color);
-}
-
-
-function drawProjectiles(projectiles, id) {
-    projectiles.forEach((p) => {
-        circle(p.x, p.y, 20, 'rgba(255, 255, 0, 0.1');
-        circle(p.x, p.y, 10, p.id === id ? 'green' : 'red');
-    });
-}
-
-
 function render(player, planets, projectiles, mouse, streams) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
+    drawResourceStreams(streams);
     planets.forEach(p => drawPlanet(p));
     drawPlayer(player);
     drawProjectiles(projectiles, player.id);
-    drawResourceStreams(streams);
-    ctx.restore();    
+    ctx.restore();
 }
 
 
 function init(canvasId) {
     canvas = document.getElementById(canvasId);
     mx = canvas.width / 2;
-    my = canvas.height / 2;   
+    my = canvas.height / 2;
     ctx = canvas.getContext('2d');
 }
-
-function drawResourceStreams(streams) {
-    for(let s = 0; s < streams.length; s++) {
-        const particles = streams[s];
-        for(let i = 0; i < particles.length; i++) {
-            const p = particles[i];
-            p.progress += p.speed;
-
-            const x = p.x + (p.ex - p.x) * p.progress;
-            const y = p.y + (p.ey - p.y) * p.progress;
-
-            if(p.progress >= 1) {
-                p.x = p.sx;
-                p.y = p.sy;
-                p.progress = 0;
-            }
-            circle(x, y, 10, p.color);
-        }
-    }
-}
-
 
 
 export { init, setCamera, panCamera, zoomCamera, render, w2c };

@@ -7,39 +7,18 @@ const ctx = canvas.getContext('2d');
 let player;
 let projectiles = [];
 let spaceObjects = [];
+let streams = [];
 let probes = [];
 
 let mouse = {x: 0, y: 0};
 
-let streams = [];
-
-function createResourceStream(startX, startY, endX, endY, color) {
-    const numParticles = 100;
-
-    let particles = [];
-    for(let i = 0; i < numParticles; i++) {
-        particles.push({
-            x: startX,
-            y: startY,
-            sx: startX,
-            sy: startY,
-            ex: endX,
-            ey: endY,
-            progress: Math.random(),
-            speed: 0.001 + Math.random() * 0.002,
-            color: color
-        });
-    }
-    streams.push(particles);
-}
 
 // Socket events:
 
 socket.on("playerConnected", data => initGame(data));
 socket.on("world", world => spaceObjects = world.spaceObjects);
-socket.on("score", data => player.radius = data);
 socket.on("res", data => player.resources = data);
-socket.on("probe", data => createResourceStream(data.x,data.y,player.x,player.y,data.color));
+socket.on("probe", data =>  streams.push([player, data, data.color]));
 
 socket.on("gameStateUpdate", data => {
   projectiles = data.projectiles;
@@ -99,8 +78,6 @@ function aim() {
   const d = Math.sqrt(dx * dx + dy * dy);
   const ax = dx / (d * d * 0.1) + Math.cos(player.angle);
   const ay = dy / (d * d * 0.1) + Math.sin(player.angle);
-  const angleToMouse = Math.atan2(dy, dx);
-
   setAngle(Math.atan2(ay, ax));
 }
 
