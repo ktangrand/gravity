@@ -15,7 +15,6 @@ const PORT = process.env.PORT || 3000;
 // Handle new Player
 // =================================================================
 
-
 io.on("connection", (socket) => {
   console.log("a user connected:", socket.id);
   const spawnLocation = gameMap.findSafeSpawnLocation(world);
@@ -50,27 +49,20 @@ io.on("connection", (socket) => {
 // Player actions
 // =================================================================
 
-function newProjectile(id, x, y, velocityX, velocityY) {
-  return {
-    id, x, y, velocityX, velocityY,
-    mass: 1,
-    radius: 5,
-    firedAt: Date.now()
-  }
-}
-
-
 function fireProjectile(id, angle, projSpeed) {
   const cosA = Math.cos(angle);
   const sinA = Math.sin(angle);
   const planet = players[id];
-  projectiles.push(newProjectile(
+  projectiles.push({ 
     id,
-    planet.x + cosA * planet.radius,
-    planet.y + sinA * planet.radius,
-    cosA * projSpeed,
-    sinA * projSpeed
-  ));
+    x: planet.x + cosA * planet.radius,
+    y: planet.y + sinA * planet.radius,
+    velocityX: cosA * projSpeed,
+    velocityY: sinA * projSpeed,
+    mass: 1,
+    radius: 5,
+    firedAt: Date.now()
+  });
 }
 
 
@@ -89,10 +81,6 @@ function pushGameState() {
     projectiles: projectiles.filter(p => now - p.firedAt > 1000)
       .map(p => { return { id: p.id, x: p.x, y: p.y } })
   });
-  if (world.changed) {
-    io.emit("world", world);
-    world.changed = false;
-  }
 }
 
 
@@ -133,14 +121,14 @@ function gameLoop() {
 // =================================================================
 // Start
 // =================================================================
+
 const baseResources = {
   'titanium': 1000,
   'antimatter': 200,
   'metamaterials': 100
 };
 
-let world = new gameMap.createWorld();
-world.changed = false;
+let world = gameMap.createWorld(20000);
 
 let planetProbes = [];
 let projectiles = [];
