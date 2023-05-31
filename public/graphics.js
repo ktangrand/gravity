@@ -3,7 +3,7 @@ let cameraX = 0;
 let cameraY = 0;
 let mx;
 let my;
-let zoom = 1;
+let zoom = 0.2;
 let canvas;
 let ctx;
 
@@ -21,7 +21,7 @@ function panCamera(dx, dy) {
 
 
 function zoomCamera(delta) {
-    const scaleFactor = 0.02;
+    const scaleFactor = 0.05;
     zoom -= scaleFactor * delta;
     zoom = Math.min(Math.max(zoom, 0.1), 3);
 }
@@ -89,13 +89,47 @@ function drawPlayer(p) {
 }
 
 
-function render(player, planets, projectiles, mouse, streams) {
+function drawGrid() {
+    const step = 20000 / 31;
+    ctx.strokeStyle = 'rgb(32, 0, 32)';
+    ctx.lineWidth = 1;
+    let [ex, ey] = w2c(20000, 20000);
+    let [zx, zy] = w2c(0, 0);
+    for (let i = 0, g = 0; i < 32; i++, g += step) {
+        let [cx, cy] = w2c(g, g);
+        ctx.moveTo(zx, cy);
+        ctx.lineTo(ex, cy);
+        ctx.stroke();
+        ctx.moveTo(cx, zy);
+        ctx.lineTo(cx, ey);
+        ctx.stroke();
+    }
+}
+
+
+
+function gravity(world, x, y) {
+    if (x < 0 || x > world.size || y < 0 || y > world.size) {
+        return [0, 0];
+    }
+    const worldStep = world.size / (world.fieldResolution - 1);
+    const xi = Math.floor(x / worldStep);
+    const yi = Math.floor(y / worldStep);
+    const fx = world.fx.getFloat32((yi * world.fieldResolution + xi) * 4);
+    const fy = world.fy.getFloat32((yi * world.fieldResolution + xi) * 4);
+    return [fx, fy];
+}
+
+
+
+function render(player, world) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
-    drawResourceStreams(streams);
-    planets.forEach(p => drawPlanet(p));
+    drawGrid();
+    drawResourceStreams(world.streams);
+    world.spaceObjects.forEach(p => drawPlanet(p));
     drawPlayer(player);
-    drawProjectiles(projectiles, player.id);
+    drawProjectiles(world.projectiles, player.id);
     ctx.restore();
 }
 

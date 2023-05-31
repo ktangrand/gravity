@@ -8,38 +8,6 @@
 <body>
   <canvas id="gameCanvas" width="800" height="800"></canvas>
   <div id="HUD">
-    <table>
-      <tr>
-        <td>Power</td>
-        <td id="power">0</td>
-      </tr>
-      <tr>
-        <td>Angle</td>
-        <td id="angle">0</td>
-      </tr>
-      <tr>
-        <td>x</td>
-        <td id="x">0</td>
-      </tr>
-      <tr>
-        <td>y</td>
-        <td id="y">0</td>
-      </tr>
-    </table>
-    <table>
-      <tr>
-        <td>Titanium</td>
-        <td id="titanium">0</td>
-      </tr>
-      <tr>
-        <td>Antimatter</td>
-        <td id="antimatter">0</td>
-      </tr>
-      <tr>
-        <td>Metamaterials</td>
-        <td id="metamaterials">0</td>
-      </tr>
-    </table>
   </div>
   <script src="/socket.io/socket.io.js"></script>
   <script type ="module" src="client.js"></script>
@@ -61,11 +29,11 @@
       z-index: 2;
       display: block;
       position: fixed;
-      width: 170px;
       float: left;
       color: white;
       font-family: monospace;
       font-size: large;
+      width: 200;
       background-color: rgba(64, 64, 64, 0.5);
       border: 3px solid yellow;
     }

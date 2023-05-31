@@ -70,15 +70,41 @@ function generateResources() {
 }
 
 
-function createWorld() {
-  const WIDTH = 20000;
-  const HEIGHT = 20000;
-  return {
+function createWorld(size) {
+  const WIDTH = size;
+  const HEIGHT = size;
+  const spaceObjects = Array.from({ length: 100 }, () => createRandomSpaceObject(WIDTH, HEIGHT));
+  const fieldResolution = 256;
+  const world = {
+    fieldResolution,
     G_CONSTANT: 0.002,
+    size: size,
     WIDTH: WIDTH,
     HEIGHT: HEIGHT,
-    spaceObjects: Array.from({ length: 100 }, () => createRandomSpaceObject(WIDTH, HEIGHT)),
+    spaceObjects,
+  };
+
+  // Calculate the field grid
+  let t = Date.now();
+  console.log('start field calc');
+  const buffer = new ArrayBuffer(fieldResolution ** 2 * 4 * 2);
+  const fxF32 = new DataView(buffer);
+  const fyF32 = new DataView(buffer, buffer.byteLength / 2);
+  const worldStep = size / (fieldResolution - 1);
+  for(let y = 0; y < fieldResolution; y++) {
+    const rowOfs = y * fieldResolution
+    for(let x = 0; x < fieldResolution; x++) {
+      const [fx, fy] = calcGravity(world, x * worldStep, y * worldStep);
+      const bOffset = (rowOfs + x) * 4;
+      fxF32.setFloat32(bOffset, fx);
+      fyF32.setFloat32(bOffset, fy);
+    }
   }
+  console.log(`end field calc after ${Date.now() - t} ms`);
+  world.fx = fxF32;
+  world.fy = fyF32;
+
+  return world;
 }
 
 
@@ -93,7 +119,7 @@ function checkCollision(world, p) {
 }
 
 
-function gravity(world, x, y) {
+function calcGravity(world, x, y) {
   let fx = 0;
   let fy = 0;
   world.spaceObjects.forEach(o => {  // todo: include other players
@@ -104,6 +130,19 @@ function gravity(world, x, y) {
     fx += force * dx / distance;
     fy += force * dy / distance;
   });
+  return [fx, fy];
+}
+
+
+function gravity(world, x, y) {
+  if (x < 0 || x > world.size || y < 0 || y > world.size) {
+    return [0, 0];
+  }
+  const worldStep = world.size / (world.fieldResolution - 1);
+  const xi = Math.floor(x / worldStep);
+  const yi = Math.floor(y / worldStep);
+  const fx = world.fx.getFloat32((yi * world.fieldResolution + xi) * 4);
+  const fy = world.fy.getFloat32((yi * world.fieldResolution + xi) * 4);
   return [fx, fy];
 }
 

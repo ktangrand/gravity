@@ -1,13 +1,13 @@
-import * as gfx from "./graphics.js"
+import * as gfx from "./graphics.js";
+import * as gui from "./user-interface.js";
 const socket = io();
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 
 let player;
+let world;
 let projectiles = [];
-let spaceObjects = [];
-let streams = [];
 let probes = [];
 
 let mouse = {x: 0, y: 0};
@@ -16,12 +16,11 @@ let mouse = {x: 0, y: 0};
 // Socket events:
 
 socket.on("playerConnected", data => initGame(data));
-socket.on("world", world => spaceObjects = world.spaceObjects);
 socket.on("res", data => player.resources = data);
-socket.on("probe", data =>  streams.push([player, data, data.color]));
+socket.on("probe", data =>  world.streams.push([player, data, data.color]));
 
 socket.on("gameStateUpdate", data => {
-  projectiles = data.projectiles;
+  world.projectiles = data.projectiles;
 });
 
 
@@ -54,7 +53,7 @@ function mouseDown(event) {
     canvas.addEventListener('mousemove', drag);
   }
   else if(event.button === 2) {
-    const iId = setInterval(aim, 1);
+    const iId = setInterval(aim, 1000 / 60);
     canvas.addEventListener('mouseup', () => clearInterval(iId));
     canvas.addEventListener('mouseleave', () => clearInterval(iId));
   }
@@ -75,9 +74,9 @@ function aim() {
   const [wx, wy] = gfx.w2c(player.x, player.y);
   const dx = mouse.x - wx;
   const dy = mouse.y - wy;
-  const d = Math.sqrt(dx * dx + dy * dy);
-  const ax = dx / (d * d * 0.1) + Math.cos(player.angle);
-  const ay = dy / (d * d * 0.1) + Math.sin(player.angle);
+  const d = dx * dx + dy * dy;
+  const ax = dx / (d * 0.1) + Math.cos(player.angle);
+  const ay = dy / (d * 0.1) + Math.sin(player.angle);
   setAngle(Math.atan2(ay, ax));
 }
 
@@ -92,20 +91,18 @@ function mouseWheelEvent(event) {
 
 // Gameloop:
 
-function drawHUD() {
-  document.getElementById("power").textContent = player.power.toFixed(2);
-  document.getElementById("angle").textContent = (player.angle * 180 / Math.PI).toFixed(3);
-  document.getElementById("x").textContent = mouse.x;
-  document.getElementById("y").textContent = mouse.y;
-  document.getElementById("titanium").textContent = player.resources["titanium"]
-  document.getElementById("antimatter").textContent = player.resources["antimatter"]
-  document.getElementById("metamaterials").textContent = player.resources["metamaterials"]
+function updateHUD() {
+  gui.showValue('power', player.power.toFixed(2));
+  gui.showValue("angle", (player.angle * 180 / Math.PI).toFixed(3));
+  gui.showValue("titanium", player.resources["titanium"]);
+  gui.showValue("antimatter", player.resources["antimatter"]);
+  gui.showValue("metamaterials",player.resources["metamaterials"]);
 }
 
 
 function gameLoop() {
-  gfx.render(player, spaceObjects, projectiles, mouse, streams);
-  drawHUD();
+  gfx.render(player, world);
+  updateHUD();
   requestAnimationFrame(gameLoop);
 }
 
@@ -129,10 +126,9 @@ function setAngle(r) {
 
 function initGame(data) {
   player = initPlayer(data.currentPlayer);
-  spaceObjects = data.world.spaceObjects;
-  spaceObjects.forEach(planet => {
-    planet.particles = [];
-  });
+  world = data.world;
+  world.streams = [];
+  world.projectiles = [];
   
   gfx.setCamera(player.x, player.y);
 
