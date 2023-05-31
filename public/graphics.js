@@ -71,14 +71,31 @@ function drawProjectiles(projectiles, id) {
 }
 
 
-function drawPlayer(p) {
-    circle(p.x, p.y, p.radius, 'white');
+function drawAim(p, world) {
+    let ax = p.x + p.radius * Math.cos(p.angle);
+    let ay = p.y + p.radius * Math.sin(p.angle);
     ctx.beginPath();
-    ctx.moveTo(...w2c(p.x, p.y));
-    ctx.lineTo(...w2c(p.x + 20000 * Math.cos(p.angle), p.y + 20000 * Math.sin(p.angle)));
-    ctx.strokeStyle = 'rgba(255, 255, 0, 0.01)';
-    ctx.lineWidth = 8;
-    ctx.stroke();
+    ctx.moveTo(...w2c(ax, ay));
+    let vx = Math.cos(p.angle) * p.power;
+    let vy = Math.sin(p.angle) * p.power;
+    for(let i=0; i<1000; i++) {
+        ax += vx;
+        ay += vy;
+        if(i % 30) {
+            ctx.lineTo(...w2c(ax, ay));
+        }
+        let [fx, fy] = gravity(world, ax, ay);
+        vx += fx;
+        vy += fy;
+    }
+    ctx.strokeStyle = '#10301040';
+    ctx.lineWidth = 10;
+    ctx.stroke()
+}
+
+
+function drawPlayer(p) {
+    circle(p.x, p.y, p.radius + 20, '#ff00ff020');
 
     ctx.beginPath();
     ctx.moveTo(...w2c(p.x, p.y));
@@ -107,7 +124,6 @@ function drawGrid() {
 }
 
 
-
 function gravity(world, x, y) {
     if (x < 0 || x > world.size || y < 0 || y > world.size) {
         return [0, 0];
@@ -121,14 +137,14 @@ function gravity(world, x, y) {
 }
 
 
-
 function render(player, world) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     drawGrid();
+    drawAim(player, world);
     drawResourceStreams(world.streams);
-    world.spaceObjects.forEach(p => drawPlanet(p));
-    drawPlayer(player);
+    world.planets.forEach(p => drawPlanet(p));
+    drawPlayer(player, world);
     drawProjectiles(world.projectiles, player.id);
     ctx.restore();
 }

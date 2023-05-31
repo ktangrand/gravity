@@ -1,3 +1,7 @@
+//
+// 
+//
+
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min) + min);
@@ -13,75 +17,48 @@ function random_distribute() {
 
 
 function generateResources() {
-  const ResourceTypeDensities = {
-    'titanium': 1000,
-    'antimatter': 700,
-    'metamaterials': 400
-  };
+  const materialKgM3 = {'titanium': 1000, 'antimatter': 700, 'metamaterials': 400};
 
-  const celestialObjectProbability = Math.random();
+  const [color, ...resProb] = [
+    ['#008000', ['titanium', 2000, 10000], ['antimatter', 200, 1000]],     // Terrestial
+    ['#0000ff', ['titanium', 1000, 5000], ['metamaterials', 8000, 1000]],  // Ice Giant
+    ['#808080', ['titanium', 3000, 5000], ['antimatter', 5000, 7000]],     // Dense Metal World
+    ['#ffc0cb', ['antimatter', 5000, 8000], ['metamaterials', 5000, 8000]] // Nebula
+  ][random_distribute(60, 20, 10, 10)];
 
-  let resources;
-  let color;
-
-  if (celestialObjectProbability < 0.6) { // 60% chance for Terrestrial Planet
-    resources = {
-      'titanium': getRandomInt(2000, 10000),
-      'antimatter': getRandomInt(200, 1000)
-    };
-    color = 'rgb(0, 128, 0)';
-  } else if (celestialObjectProbability < 0.8) { // 20% chance for Ice Giant
-    resources = {
-      'titanium': getRandomInt(1000, 5000),
-      'metamaterials': getRandomInt(8000, 10000)
-    };
-    color = 'rgb(0, 0, 255)';
-  } else if (celestialObjectProbability < 0.9) { // 10% chance for Dense Metal World
-    resources = {
-      'titanium': getRandomInt(3000, 5000),
-      'antimatter': getRandomInt(5000, 7000)
-    };
-    color = 'rgb(128, 128, 128)';
-  } else { // 10% chance for Nebula
-    resources = {
-      'antimatter': getRandomInt(5000, 8000),
-      'metamaterials': getRandomInt(5000, 8000)
-    };
-    color = 'rgb(255, 192, 203)';
+  let mass = 0;
+  let volume = 0;
+  let resources = {};
+  for ([material, max, min] of resProb) {
+    resources[material] = getRandomInt(max, min);
+    mass += resources[material] * materialKgM3[material];
+    volume += resources[material] / materialKgM3[material];
   }
 
-  let totalMass = 0;
-  let totalVolume = 0;
-  for (const resourceType in resources) {
-    const resourceDensity = ResourceTypeDensities[resourceType];
-    const resourceMass = resources[resourceType] * resourceDensity;
-    const resourceVolume = resources[resourceType] / resourceDensity;
-
-    totalMass += resourceMass;
-    totalVolume += resourceVolume;
-  }
-
-  const averageDensity = totalMass / totalVolume;
-
-  // Calculate the radius (m) of the planet based on its volume (m^3)
-  const radius = Math.cbrt((3 * totalVolume) / (4 * Math.PI)) * 100.0;
-
-  return { mass: totalMass, color, resources, density: averageDensity, radius };
+  return { mass, color, resources, 
+           radius: Math.cbrt((3 * volume) / (4 * Math.PI)) * 100.0 };
 }
 
 
 function createWorld(size) {
-  const WIDTH = size;
-  const HEIGHT = size;
-  const spaceObjects = Array.from({ length: 100 }, () => createRandomSpaceObject(WIDTH, HEIGHT));
+  const planets = [];
+  // Random planets
+  for(let nr = 1; nr < 100; nr++) {
+    planets.push({
+      x: Math.random() * size,
+      y: Math.random() * size,
+      populated: null,
+      nr,
+      ...generateResources()
+    });
+  }
+  
   const fieldResolution = 256;
   const world = {
     fieldResolution,
     G_CONSTANT: 0.002,
     size: size,
-    WIDTH: WIDTH,
-    HEIGHT: HEIGHT,
-    spaceObjects,
+    planets,
   };
 
   // Calculate the field grid
@@ -91,9 +68,9 @@ function createWorld(size) {
   const fxF32 = new DataView(buffer);
   const fyF32 = new DataView(buffer, buffer.byteLength / 2);
   const worldStep = size / (fieldResolution - 1);
-  for(let y = 0; y < fieldResolution; y++) {
-    const rowOfs = y * fieldResolution
-    for(let x = 0; x < fieldResolution; x++) {
+  for (let y = 0; y < fieldResolution; y++) {
+    const rowOfs = y * fieldResolution;
+    for (let x = 0; x < fieldResolution; x++) {
       const [fx, fy] = calcGravity(world, x * worldStep, y * worldStep);
       const bOffset = (rowOfs + x) * 4;
       fxF32.setFloat32(bOffset, fx);
@@ -109,7 +86,7 @@ function createWorld(size) {
 
 
 function checkCollision(world, p) {
-  for(const o of world.spaceObjects) {
+  for (const o of world.planets) {
     const distance = Math.sqrt((o.x - p.x) ** 2 + (o.y - p.y) ** 2);
     if (distance < (p.radius + o.radius)) {
       return o;
@@ -122,7 +99,7 @@ function checkCollision(world, p) {
 function calcGravity(world, x, y) {
   let fx = 0;
   let fy = 0;
-  world.spaceObjects.forEach(o => {  // todo: include other players
+  world.planets.forEach(o => {
     const dx = o.x - x;
     const dy = o.y - y;
     const distance = Math.sqrt(dx ** 2 + dy ** 2);
@@ -147,40 +124,24 @@ function gravity(world, x, y) {
 }
 
 
-let idCounter = 0;
-function createRandomSpaceObject(width, height) {
-  return {
-    x: Math.random() * width,
-    y: Math.random() * height,
-    id: idCounter++,
-    ...generateResources()
-  }
-}
-
-
-function findSafeSpawnLocation(world) {
-  const safeDistance = 100; // Adjust this to change how far away new players must spawn from space objects
-  let safe = false;
-  let x, y;
-  while (!safe) {
-    x = Math.random() * world.WIDTH;
-    y = Math.random() * world.HEIGHT;
-    safe = true;
-    for (const spaceObject of world.spaceObjects) {
-      const distance = Math.sqrt((spaceObject.x - x) ** 2 + (spaceObject.y - y) ** 2);
-      if (distance < safeDistance) {
-        safe = false;
-        break;
+function findAHome(world) {
+  for(planet of world.planets) {
+    // first empty blue marble
+    if(planet.color === '#008000' && !planet.populated) {
+      planet.resources = {
+        'titanium': 1000,
+        'antimatter': 200,
+        'metamaterials': 100
       }
+      return planet;
     }
   }
-  return { x, y };
 }
 
 
 module.exports = {
   createWorld,
-  findSafeSpawnLocation,
+  findAHome,
   gravity,
   checkCollision,
 }

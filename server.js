@@ -15,18 +15,10 @@ const PORT = process.env.PORT || 3000;
 // Handle new Player
 // =================================================================
 
-io.on("connection", (socket) => {
+function newPlayer(socket) {
   console.log("a user connected:", socket.id);
-  const spawnLocation = gameMap.findSafeSpawnLocation(world);
-  const newPlayer = {
-    x: spawnLocation.x,
-    y: spawnLocation.y,
-    mass: 1000000,
-    color: 'white',
-    radius: 100,
-    resources: baseResources,
-    id: socket.id
-  };
+  const newPlayer = gameMap.findAHome(world);
+  newPlayer.populated = socket.id
   players[socket.id] = newPlayer;
 
   socket.emit("playerConnected", {
@@ -36,13 +28,14 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     cancelProjectile(socket.id);
+    players[socket.id].populated = null;
     delete players[socket.id];
     console.log("a user disconnected:", socket.id);
   });
 
   socket.on("fireProjectile", data => fireProjectile(socket.id, data.angle, data.projSpeed));
   socket.on("cancelProjectile", () => cancelProjectile(socket.id));
-});
+};
 
 
 // =================================================================
@@ -85,12 +78,17 @@ function pushGameState() {
 
 
 function handleCollision(p, planet) {
-  if (true) { // Todo check if we hit other player
-    io.to(p.id).emit("probe", planet);
-    planetProbes.push({playerid: p.id, planetid: planet.id});
-    console.log(planetProbes);
+  
+  if(planet.pupulated) {
+    if(p.id === planet.populated) {
+      // awkward
+    } else {
+      // hit player[planet.populated]
+    }
   } else {
-    // other player
+    io.to(p.id).emit("probe", planet);
+    planetProbes.push({playerid: p.id, planetnr: planet.nr});
+    console.log(planetProbes);
   }
 }
 
@@ -122,17 +120,13 @@ function gameLoop() {
 // Start
 // =================================================================
 
-const baseResources = {
-  'titanium': 1000,
-  'antimatter': 200,
-  'metamaterials': 100
-};
-
 let world = gameMap.createWorld(20000);
 
 let planetProbes = [];
 let projectiles = [];
 const players = {};
+
+io.on("connection", newPlayer);
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

@@ -7,9 +7,6 @@ const ctx = canvas.getContext('2d');
 
 let player;
 let world;
-let projectiles = [];
-let probes = [];
-
 let mouse = {x: 0, y: 0};
 
 
@@ -113,7 +110,7 @@ function initPlayer(playerData) {
   return {
     ...playerData,
     angle: 0,
-    power: 10
+    power: 20
   };  
 }
 
@@ -129,6 +126,8 @@ function initGame(data) {
   world = data.world;
   world.streams = [];
   world.projectiles = [];
+  world.fx = new DataView(world.fx);
+  world.fy = new DataView(world.fy);
   
   gfx.setCamera(player.x, player.y);
 
