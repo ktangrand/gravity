@@ -29,7 +29,7 @@ function generateResources() {
   let mass = 0;
   let volume = 0;
   let resources = {};
-  for ([material, max, min] of resProb) {
+  for (let [material, max, min] of resProb) {
     resources[material] = getRandomInt(max, min);
     mass += resources[material] * materialKgM3[material];
     volume += resources[material] / materialKgM3[material];
@@ -53,14 +53,16 @@ function createWorld(size) {
     });
   }
   
-  const fieldResolution = 256;
+
+  const fieldResolution = 512;
   const world = {
     fieldResolution,
-    G_CONSTANT: 0.002,
+    G_CONSTANT: 0.004,
     size: size,
     planets,
   };
 
+  
   // Calculate the field grid
   let t = Date.now();
   console.log('start field calc');

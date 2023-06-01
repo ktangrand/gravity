@@ -1,11 +1,14 @@
 
 let cameraX = 0;
 let cameraY = 0;
-let mx;
-let my;
+let mx = 0;
+let my = 0;
 let zoom = 0.2;
 let canvas;
 let ctx;
+let world = {};
+let player = {};
+let aimC = [];
 
 
 function setCamera(x, y) {
@@ -40,9 +43,9 @@ function circle(x, y, radius, color) {
 }
 
 
-function drawResourceStreams(streams) {
+function drawResourceStreams() {
     const anim = Date.now();
-    for (const [start, end, color] of streams) {
+    for (const [start, end, color] of world.streams) {
         const dist = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
         let incr = 800 / dist;
         for (let i = 0; i < 1 - incr; i += incr) {
@@ -63,52 +66,66 @@ function drawPlanet(p) {
 }
 
 
-function drawProjectiles(projectiles, id) {
-    projectiles.forEach((p) => {
-        circle(p.x, p.y, 20, 'rgba(255, 255, 0, 0.1');
-        circle(p.x, p.y, 10, p.id === id ? 'green' : 'red');
+function drawProjectiles() {
+    world.projectiles.forEach((p) => {
+        circle(p.x, p.y, 10, p.id === player.id ? 'green' : 'red');
     });
 }
 
 
-function drawAim(p, world) {
-    let ax = p.x + p.radius * Math.cos(p.angle);
-    let ay = p.y + p.radius * Math.sin(p.angle);
-    ctx.beginPath();
-    ctx.moveTo(...w2c(ax, ay));
-    let vx = Math.cos(p.angle) * p.power;
-    let vy = Math.sin(p.angle) * p.power;
-    for(let i=0; i<1000; i++) {
+function calculateAim() {
+    aimC = [];
+    let ax = player.x + player.radius * Math.cos(player.angle);
+    let ay = player.y + player.radius * Math.sin(player.angle);
+    let vx = Math.cos(player.angle) * player.power;
+    let vy = Math.sin(player.angle) * player.power;
+    for (let i = 0; i < 1000; i++) {
+        if (i % 30) {
+            aimC.push([ax, ay]);
+        }
         ax += vx;
         ay += vy;
-        if(i % 30) {
-            ctx.lineTo(...w2c(ax, ay));
-        }
-        let [fx, fy] = gravity(world, ax, ay);
+        if (ax < 0 || ax > world.size || ay < 0 || ay > world.size) break;
+        let [fx, fy] = gravity(ax, ay);
         vx += fx;
         vy += fy;
     }
-    ctx.strokeStyle = '#10301040';
+}
+
+
+function drawAim() {
+    ctx.beginPath();
+    ctx.moveTo(...w2c(...aimC[0]));
+    for (let a of aimC) {
+        ctx.lineTo(...w2c(...a));
+    }
+    ctx.strokeStyle = '#103010';
     ctx.lineWidth = 10;
     ctx.stroke()
 }
 
 
-function drawPlayer(p) {
-    circle(p.x, p.y, p.radius + 20, '#ff00ff020');
+function drawPlayer() {
+    circle(player.x, player.y, player.radius + 20, '#ffffff');
 
     ctx.beginPath();
-    ctx.moveTo(...w2c(p.x, p.y));
-    ctx.lineTo(...w2c(p.x + p.power * 60 * Math.cos(p.angle), p.y + p.power * 60 * Math.sin(p.angle)));
-    ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
-    ctx.lineWidth = 2;
+    ctx.moveTo(...w2c(player.x, player.y));
+    ctx.lineTo(...w2c(player.x + player.power * 60 * Math.cos(player.angle),
+        player.y + player.power * 60 * Math.sin(player.angle)));
+    ctx.strokeStyle = '#ffff00';
+    ctx.lineWidth = 20 * zoom;
+    ctx.stroke();
+    ctx.lineTo(...w2c(player.x + 20000 * Math.cos(player.angle),
+        player.y + 20000 * Math.sin(player.angle)));
+    ctx.strokeStyle = '#808080';
+    ctx.lineWidth = 1;
     ctx.stroke();
 }
 
 
 function drawGrid() {
     const step = 20000 / 31;
-    ctx.strokeStyle = 'rgb(32, 0, 32)';
+    ctx.strokeStyle = '#200020';
     ctx.lineWidth = 1;
     let [ex, ey] = w2c(20000, 20000);
     let [zx, zy] = w2c(0, 0);
@@ -124,7 +141,7 @@ function drawGrid() {
 }
 
 
-function gravity(world, x, y) {
+function gravity(x, y) {
     if (x < 0 || x > world.size || y < 0 || y > world.size) {
         return [0, 0];
     }
@@ -137,20 +154,22 @@ function gravity(world, x, y) {
 }
 
 
-function render(player, world) {
+function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     drawGrid();
-    drawAim(player, world);
-    drawResourceStreams(world.streams);
+    drawAim();
+    drawResourceStreams();
     world.planets.forEach(p => drawPlanet(p));
     drawPlayer(player, world);
-    drawProjectiles(world.projectiles, player.id);
+    drawProjectiles();
     ctx.restore();
 }
 
 
-function init(canvasId) {
+function init(canvasId, aPlayer, aWorld) {
+    player = aPlayer;
+    world = aWorld;
     canvas = document.getElementById(canvasId);
     mx = canvas.width / 2;
     my = canvas.height / 2;
@@ -158,4 +177,4 @@ function init(canvasId) {
 }
 
 
-export { init, setCamera, panCamera, zoomCamera, render, w2c };
+export { init, setCamera, panCamera, zoomCamera, render, w2c, calculateAim };

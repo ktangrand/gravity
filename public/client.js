@@ -3,7 +3,8 @@ import * as gui from "./user-interface.js";
 const socket = io();
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-
+let aimX = [];
+let aimY = [];
 
 let player;
 let world;
@@ -26,12 +27,16 @@ socket.on("gameStateUpdate", data => {
 function keyDownEvent({key}) {
   if (["ArrowLeft", "a"].includes(key)) {
     setAngle(player.angle + 0.02);
+    gfx.calculateAim();
   } else if (["ArrowRight", "d"].includes(key)) {
     setAngle(player.angle - 0.02);
+    gfx.calculateAim();
   } else if (["ArrowUp", "w"].includes(key)) {
     player.power += 0.2;
+    gfx.calculateAim();
   } else if (["ArrowDown", "s"].includes(key)) {
     player.power -= 0.2;
+    gfx.calculateAim();
   } else if (["f"].includes(key)) {
     socket.emit("fireProjectile", { angle: player.angle, projSpeed: player.power });
   } else if (["c"].includes(key)) {
@@ -75,6 +80,7 @@ function aim() {
   const ax = dx / (d * 0.1) + Math.cos(player.angle);
   const ay = dy / (d * 0.1) + Math.sin(player.angle);
   setAngle(Math.atan2(ay, ax));
+  gfx.calculateAim()
 }
 
 
@@ -98,7 +104,7 @@ function updateHUD() {
 
 
 function gameLoop() {
-  gfx.render(player, world);
+  gfx.render();
   updateHUD();
   requestAnimationFrame(gameLoop);
 }
@@ -129,7 +135,9 @@ function initGame(data) {
   world.fx = new DataView(world.fx);
   world.fy = new DataView(world.fy);
   
+  gfx.init('gameCanvas', player, world);
   gfx.setCamera(player.x, player.y);
+  gfx.calculateAim();
 
   canvas.addEventListener("mousemove", e => mouse = {x: e.clientX, y: e.clientY});
   canvas.addEventListener("mousedown", e => {});
@@ -145,7 +153,7 @@ function initGame(data) {
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  gfx.init('gameCanvas');
+  gfx.init('gameCanvas', player, world);
 }
 
 
