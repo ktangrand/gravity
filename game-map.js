@@ -8,18 +8,18 @@ function getRandomInt(min, max) {
 }
 
 
-function random_distribute() {
-  const r = Math.random() * [...arguments].reduce((a, b) => a + b); //random * sum(arguments)
-  for (let i = 0, s = arguments[0]; i < arguments.length; i++, s += arguments[i]) {
-    if (r < s) return i;
+function random_distribute(...probs) {
+  const r = Math.random() * probs.reduce((a, b) => a + b); //random * sum(arguments)
+  for (let i = 0, s = probs[0]; i < probs.length; i++, s += probs[i]) {
+    if (r <= s) return i;
   }
 }
 
 
 function generateResources() {
-  const materialKgM3 = {'titanium': 1000, 'antimatter': 700, 'metamaterials': 400};
+  const materialKgM3 = { 'titanium': 1000, 'antimatter': 700, 'metamaterials': 400 };
 
-  const [color, ...resProb] = [
+  const [color, ...resProb] = [  // 
     ['#008000', ['titanium', 2000, 10000], ['antimatter', 200, 1000]],     // Terrestial
     ['#0000ff', ['titanium', 1000, 5000], ['metamaterials', 8000, 1000]],  // Ice Giant
     ['#808080', ['titanium', 3000, 5000], ['antimatter', 5000, 7000]],     // Dense Metal World
@@ -29,21 +29,23 @@ function generateResources() {
   let mass = 0;
   let volume = 0;
   let resources = {};
-  for (let [material, max, min] of resProb) {
-    resources[material] = getRandomInt(max, min);
+  for (let [material, min, max] of resProb) {
+    resources[material] = getRandomInt(min, max);
     mass += resources[material] * materialKgM3[material];
     volume += resources[material] / materialKgM3[material];
   }
 
-  return { mass, color, resources, 
-           radius: Math.cbrt((3 * volume) / (4 * Math.PI)) * 100.0 };
+  return {
+    mass, color, resources,
+    radius: Math.cbrt((3 * volume) / (4 * Math.PI)) * 100.0
+  };
 }
 
 
 function createWorld(size) {
   const planets = [];
   // Random planets
-  for(let nr = 1; nr < 100; nr++) {
+  for (let nr = 1; nr < 100; nr++) {
     planets.push({
       x: Math.random() * size,
       y: Math.random() * size,
@@ -52,17 +54,17 @@ function createWorld(size) {
       ...generateResources()
     });
   }
-  
 
-  const fieldResolution = 512;
+
+  const fieldResolution = 200;
   const world = {
     fieldResolution,
     G_CONSTANT: 0.004,
-    size: size,
+    size,
     planets,
   };
 
-  
+
   // Calculate the field grid
   let t = Date.now();
   console.log('start field calc');
@@ -88,28 +90,29 @@ function createWorld(size) {
 
 
 function checkCollision(world, p) {
-  for (const o of world.planets) {
-    const distance = Math.sqrt((o.x - p.x) ** 2 + (o.y - p.y) ** 2);
-    if (distance < (p.radius + o.radius)) {
-      return o;
-    }
-  };
+  let [fx, fy] = gravity(world, p.x, p.y);
+  if(fx === 1000) {
+    return world.planets[fy - 1];
+  }
   return null;
 }
 
 
 function calcGravity(world, x, y) {
-  let fx = 0;
-  let fy = 0;
-  world.planets.forEach(o => {
+  let gx = 0;
+  let gy = 0;
+  for(o of world.planets) {
     const dx = o.x - x;
     const dy = o.y - y;
     const distance = Math.sqrt(dx ** 2 + dy ** 2);
+    if(distance <= o.radius) {
+      return [1000, o.nr];
+    }
     const force = world.G_CONSTANT * o.mass / distance ** 2
-    fx += force * dx / distance;
-    fy += force * dy / distance;
-  });
-  return [fx, fy];
+    gx += force * dx / distance;
+    gy += force * dy / distance;
+  };
+  return [gx, gy];
 }
 
 
@@ -127,14 +130,14 @@ function gravity(world, x, y) {
 
 
 function findAHome(world) {
-  for(planet of world.planets) {
-    // first empty blue marble
-    if(planet.color === '#008000' && !planet.populated) {
+  for (let planet of world.planets) {
+    // first empty ..green marble
+    if (planet.color === '#008000' && !planet.populated) {
       planet.resources = {
         'titanium': 1000,
         'antimatter': 200,
         'metamaterials': 100
-      }
+      };
       return planet;
     }
   }
@@ -146,4 +149,4 @@ module.exports = {
   findAHome,
   gravity,
   checkCollision,
-}
+};

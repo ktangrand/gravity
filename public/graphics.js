@@ -74,7 +74,7 @@ function drawProjectiles() {
 
 
 function calculateAim() {
-    aimC = [];
+    aimC = [[player.x, player.y]];
     let ax = player.x + player.radius * Math.cos(player.angle);
     let ay = player.y + player.radius * Math.sin(player.angle);
     let vx = Math.cos(player.angle) * player.power;
@@ -87,6 +87,9 @@ function calculateAim() {
         ay += vy;
         if (ax < 0 || ax > world.size || ay < 0 || ay > world.size) break;
         let [fx, fy] = gravity(ax, ay);
+        if(fx === 1000) { // Collision
+            break;
+        }
         vx += fx;
         vy += fy;
     }
