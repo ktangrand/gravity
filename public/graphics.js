@@ -66,16 +66,14 @@ function drawPlanet(p) {
 
 
 function drawProjectiles() {
-  world.projectiles.forEach((p) => {
-    circle(p.x, p.y, 10, p.id === player.id ? 'green' : 'red');
-  });
+
 }
 
 
 function drawAim() {
   ctx.beginPath();
-  ctx.moveTo(...w2c(...aimC[0]));
-  for (let a of aimC) {
+  ctx.moveTo(...w2c(...player.aimC[0]));
+  for (let a of player.aimC) {
     ctx.lineTo(...w2c(...a));
   }
   ctx.strokeStyle = '#103010';
@@ -85,17 +83,18 @@ function drawAim() {
 
 
 function drawPlayer() {
-  circle(player.x, player.y, player.radius + 20, '#ffffff');
+  const {x, y, radius} = player.home;
+  circle(x, y, radius + 20, '#ffffff');
 
   ctx.beginPath();
-  ctx.moveTo(...w2c(player.x, player.y));
-  ctx.lineTo(...w2c(player.x + player.power * 60 * Math.cos(player.angle),
-    player.y + player.power * 60 * Math.sin(player.angle)));
+  ctx.moveTo(...w2c(x, y));
+  ctx.lineTo(...w2c(x + player.power * 60 * Math.cos(player.angle),
+    y + player.power * 60 * Math.sin(player.angle)));
   ctx.strokeStyle = '#ffff00';
   ctx.lineWidth = 20 * zoom;
   ctx.stroke();
-  ctx.lineTo(...w2c(player.x + 20000 * Math.cos(player.angle),
-    player.y + 20000 * Math.sin(player.angle)));
+  ctx.lineTo(...w2c(x + 20000 * Math.cos(player.angle),
+    y + 20000 * Math.sin(player.angle)));
   ctx.strokeStyle = '#808080';
   ctx.lineWidth = 1;
   ctx.stroke();
@@ -133,14 +132,21 @@ function render() {
 }
 
 
-function init(canvasId, aPlayer, aWorld) {
-  player = aPlayer;
-  world = aWorld;
-  canvas = document.getElementById(canvasId);
+function resize() {
+  canvas = document.getElementById("gameCanvas");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
   mx = canvas.width / 2;
   my = canvas.height / 2;
+}
+
+
+function init(aPlayer, aWorld) {
+  player = aPlayer;
+  world = aWorld;
+  resize();
   ctx = canvas.getContext('2d');
 }
 
 
-export { init, setCamera, panCamera, zoomCamera, render, w2c };
+export { init, setCamera, panCamera, zoomCamera, render, w2c, resize };

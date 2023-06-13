@@ -2,6 +2,8 @@ import * as gfx from "./graphics.js";
 import * as gui from "./user-interface.js";
 import * as player from "./player.js";
 
+console.log(player.home);
+
 const socket = io();
 const canvas = document.getElementById('gameCanvas');
 
@@ -78,9 +80,9 @@ function mouseWheelEvent(event) {
 function updateHUD() {
   gui.showValue('power', player.power.toFixed(2));
   gui.showValue("angle", (player.angle * 180 / Math.PI).toFixed(3));
-  gui.showValue("titanium", player.resources["titanium"]);
-  gui.showValue("antimatter", player.resources["antimatter"]);
-  gui.showValue("metamaterials", player.resources["metamaterials"]);
+  gui.showValue("titanium", player.home.resources["titanium"]);
+  gui.showValue("antimatter", player.home.resources["antimatter"]);
+  gui.showValue("metamaterials", player.home.resources["metamaterials"]);
 }
 
 
@@ -94,14 +96,13 @@ function gameLoop() {
 // Init:
 
 function initGame(data) {
-  player.createPlayer(data.currentPlayer);
   world = data.world;
-  world.streams = [];
-  world.projectiles = [];
   world.fx = new DataView(world.fx);
-  world.fy = new DataView(world.fy);
+  world.fy = new DataView(world.fy);  
+  player.createPlayer(data.currentPlayer, world);
+  world.streams = [];
 
-  gfx.init('gameCanvas', player.home, world);
+  gfx.init(player, world);
   gfx.setCamera(player.home.x, player.home.y);
 
   canvas.addEventListener("mousemove", e => mouse = { x: e.clientX, y: e.clientY });
@@ -109,18 +110,10 @@ function initGame(data) {
   window.addEventListener("keydown", keyDownEvent);
   canvas.addEventListener("mousedown", mouseDown);
   canvas.addEventListener("wheel", mouseWheelEvent);
-  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  canvas.addEventListener("contextmenu", e => e.preventDefault());
   // Start game
   gameLoop();
 };
 
+window.addEventListener("resize", gfx.resize);
 
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  gfx.init('gameCanvas', player, world);
-}
-
-
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();

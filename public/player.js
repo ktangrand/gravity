@@ -1,13 +1,14 @@
-let world;
-let home;
-let angle;
-let power;
-let aimC;
+let world = {};
+let home = {};
+let angle = 0;
+let power = 15;
+let aimC = [];
 
 
-function createPlayer(world, homePlanet) {
-  world = world;
-  home = homePlanet;
+function createPlayer(_home, _world) {
+  home = _home;
+  world = _world;
+  setAngle(0);
 }
 
 
@@ -26,16 +27,18 @@ function setAngle(r) {
 
 
 function calculateAim() {
-  aimC = [[player.x, player.y]];
-  let ax = player.x + 2 * player.radius * Math.cos(player.angle);
-  let ay = player.y + 2 * player.radius * Math.sin(player.angle);
-  let vx = Math.cos(player.angle) * player.power;
-  let vy = Math.sin(player.angle) * player.power;
+  aimC = [[home.x, home.y]];
+  let ax = home.x + 2 * home.radius * Math.cos(angle);
+  let ay = home.y + 2 * home.radius * Math.sin(angle);
+  let vx = Math.cos(angle) * power;
+  let vy = Math.sin(angle) * power;
   for (let i = 0; i < 1000; i++) {
     aimC.push([ax, ay]);
     ax += vx;
     ay += vy;
-    if (ax < 0 || ax > world.size || ay < 0 || ay > world.size) break;
+    if (ax < 0 || ax > world.size || ay < 0 || ay > world.size) {
+      break;
+    }
     let [fx, fy] = gravity(ax, ay);
     if (fx === 1000) { // Collision
       break;
@@ -86,10 +89,8 @@ function gravity(x, y) {
 
 
 function sendProbe() {
-  const cosA = Math.cos(angle);
-  const sinA = Math.sin(angle);
-  const planet = players[id];
+ 
 }
 
 
-export { createPlayer, adjustPower, angle, home, sendProbe }
+export { createPlayer, adjustPower, setAngle, angle, home, sendProbe, aimC, power }
