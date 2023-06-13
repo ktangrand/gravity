@@ -1,7 +1,3 @@
-//
-// 
-//
-
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min) + min);
@@ -56,7 +52,7 @@ function createWorld(size) {
   }
 
 
-  const fieldResolution = 200;
+  const fieldResolution = 320;
   const world = {
     fieldResolution,
     G_CONSTANT: 0.004,
@@ -91,7 +87,7 @@ function createWorld(size) {
 
 function checkCollision(world, p) {
   let [fx, fy] = gravity(world, p.x, p.y);
-  if(fx === 1000) {
+  if (fx === 1000) {
     return world.planets[fy - 1];
   }
   return null;
@@ -101,11 +97,11 @@ function checkCollision(world, p) {
 function calcGravity(world, x, y) {
   let gx = 0;
   let gy = 0;
-  for(o of world.planets) {
+  for (o of world.planets) {
     const dx = o.x - x;
     const dy = o.y - y;
     const distance = Math.sqrt(dx ** 2 + dy ** 2);
-    if(distance <= o.radius) {
+    if (distance <= o.radius) {
       return [1000, o.nr];
     }
     const force = world.G_CONSTANT * o.mass / distance ** 2
@@ -113,19 +109,6 @@ function calcGravity(world, x, y) {
     gy += force * dy / distance;
   };
   return [gx, gy];
-}
-
-
-function gravity(world, x, y) {
-  if (x < 0 || x > world.size || y < 0 || y > world.size) {
-    return [0, 0];
-  }
-  const worldStep = world.size / (world.fieldResolution - 1);
-  const xi = Math.floor(x / worldStep);
-  const yi = Math.floor(y / worldStep);
-  const fx = world.fx.getFloat32((yi * world.fieldResolution + xi) * 4);
-  const fy = world.fy.getFloat32((yi * world.fieldResolution + xi) * 4);
-  return [fx, fy];
 }
 
 
@@ -147,6 +130,5 @@ function findAHome(world) {
 module.exports = {
   createWorld,
   findAHome,
-  gravity,
   checkCollision,
 };
