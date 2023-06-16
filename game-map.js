@@ -1,4 +1,9 @@
 
+
+  // =================================================================
+  // Generate new world
+  // =================================================================
+
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min) + min);
 }
@@ -51,7 +56,6 @@ function createWorld(size) {
     });
   }
 
-
   const fieldResolution = 320;
   const world = {
     fieldResolution,
@@ -59,7 +63,6 @@ function createWorld(size) {
     size,
     planets,
   };
-
 
   // Calculate the field grid
   let t = Date.now();
@@ -112,6 +115,10 @@ function calcGravity(world, x, y) {
 }
 
 
+  // =================================================================
+  // 
+  // =================================================================
+
 function findAHome(world) {
   for (let planet of world.planets) {
     // first empty ..green marble
@@ -130,5 +137,4 @@ function findAHome(world) {
 module.exports = {
   createWorld,
   findAHome,
-  checkCollision,
 };

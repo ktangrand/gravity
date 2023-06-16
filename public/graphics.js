@@ -1,3 +1,5 @@
+import * as player from "./player.js";
+import * as world from "./world.js";
 
 let cameraX = 0;
 let cameraY = 0;
@@ -6,8 +8,6 @@ let my = 0;
 let zoom = 0.2;
 let canvas;
 let ctx;
-let world = {};
-let player;
 
 
 function setCamera(x, y) {
@@ -29,7 +29,7 @@ function zoomCamera(delta) {
 }
 
 
-function w2c(x, y) {
+function w2c(x, y) { // Convert from world to canvas coordinates 
   return [(x - cameraX) * zoom + mx, (y - cameraY) * zoom + my];
 }
 
@@ -83,7 +83,7 @@ function drawAim() {
 
 
 function drawPlayer() {
-  const {x, y, radius} = player.home;
+  const { x, y, radius } = player.home;
   circle(x, y, radius + 20, '#ffffff');
 
   ctx.beginPath();
@@ -141,9 +141,7 @@ function resize() {
 }
 
 
-function init(aPlayer, aWorld) {
-  player = aPlayer;
-  world = aWorld;
+function init() {
   resize();
   ctx = canvas.getContext('2d');
 }

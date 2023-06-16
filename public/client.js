@@ -1,13 +1,14 @@
 import * as gfx from "./graphics.js";
 import * as gui from "./user-interface.js";
-import * as player from "./player.js";
 
-console.log(player.home);
+// Using [player.js] and [world.js] as singleton objects
+import * as player from "./player.js";
+import * as world from "./world.js";
+
 
 const socket = io();
-const canvas = document.getElementById('gameCanvas');
 
-let world;
+const canvas = document.getElementById("gameCanvas");
 let mouse = { x: 0, y: 0 };
 
 
@@ -96,13 +97,9 @@ function gameLoop() {
 // Init:
 
 function initGame(data) {
-  world = data.world;
-  world.fx = new DataView(world.fx);
-  world.fy = new DataView(world.fy);  
-  player.createPlayer(data.currentPlayer, world);
-  world.streams = [];
-
-  gfx.init(player, world);
+  world.initWorld(data.world);
+  player.initPlayer(data.currentPlayer);
+  gfx.init();
   gfx.setCamera(player.home.x, player.home.y);
 
   canvas.addEventListener("mousemove", e => mouse = { x: e.clientX, y: e.clientY });
@@ -116,4 +113,3 @@ function initGame(data) {
 };
 
 window.addEventListener("resize", gfx.resize);
-
