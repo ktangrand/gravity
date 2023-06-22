@@ -1,8 +1,8 @@
 
 
-  // =================================================================
-  // Generate new world
-  // =================================================================
+// =================================================================
+// Generate new world
+// =================================================================
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min) + min);
@@ -36,31 +36,31 @@ function generateResources() {
     volume += resources[material] / materialKgM3[material];
   }
 
+  mass = mass / 1_000_000;
   return {
     mass, color, resources,
-    radius: Math.cbrt((3 * volume) / (4 * Math.PI)) * 100.0
+    radius: Math.cbrt((3 * volume) / (4 * Math.PI)) / 200
   };
 }
 
 
-function createWorld(size) {
+function createWorld() {
   const planets = [];
   // Random planets
   for (let nr = 1; nr < 100; nr++) {
     planets.push({
-      x: Math.random() * size,
-      y: Math.random() * size,
+      x: Math.random(),
+      y: Math.random(),
       populated: null,
       nr,
       ...generateResources()
     });
   }
 
-  const fieldResolution = 320;
+  const fieldResolution = 256;
   const world = {
     fieldResolution,
-    G_CONSTANT: 0.004,
-    size,
+    G_CONSTANT: 0.00000004,
     planets,
   };
 
@@ -70,30 +70,20 @@ function createWorld(size) {
   const buffer = new ArrayBuffer(fieldResolution ** 2 * 4 * 2);
   const fxF32 = new DataView(buffer);
   const fyF32 = new DataView(buffer, buffer.byteLength / 2);
-  const worldStep = size / (fieldResolution - 1);
+  const worldStep = 1 / (fieldResolution - 1);
   for (let y = 0; y < fieldResolution; y++) {
     const rowOfs = y * fieldResolution;
     for (let x = 0; x < fieldResolution; x++) {
-      const [fx, fy] = calcGravity(world, x * worldStep, y * worldStep);
+      const [gx, gy] = calcGravity(world, x * worldStep, y * worldStep);
       const bOffset = (rowOfs + x) * 4;
-      fxF32.setFloat32(bOffset, fx);
-      fyF32.setFloat32(bOffset, fy);
+      fxF32.setFloat32(bOffset, gx);
+      fyF32.setFloat32(bOffset, gy);
     }
   }
   console.log(`end field calc after ${Date.now() - t} ms`);
-  world.fx = fxF32;
-  world.fy = fyF32;
+  world.field = fxF32;
 
   return world;
-}
-
-
-function checkCollision(world, p) {
-  let [fx, fy] = gravity(world, p.x, p.y);
-  if (fx === 1000) {
-    return world.planets[fy - 1];
-  }
-  return null;
 }
 
 
@@ -107,7 +97,7 @@ function calcGravity(world, x, y) {
     if (distance <= o.radius) {
       return [1000, o.nr];
     }
-    const force = world.G_CONSTANT * o.mass / distance ** 2
+    const force = world.G_CONSTANT * o.mass / distance ** 2;
     gx += force * dx / distance;
     gy += force * dy / distance;
   };
@@ -115,9 +105,9 @@ function calcGravity(world, x, y) {
 }
 
 
-  // =================================================================
-  // 
-  // =================================================================
+// =================================================================
+// 
+// =================================================================
 
 function findAHome(world) {
   for (let planet of world.planets) {

@@ -1,4 +1,4 @@
-"use strict"
+'use strict';
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
@@ -16,24 +16,24 @@ const PORT = process.env.PORT || 3000;
 // =================================================================
 
 function newPlayer(socket) {
-  console.log("a user connected:", socket.id);
+  console.log('a user connected:', socket.id);
   const newPlayer = gameMap.findAHome(world);
-  newPlayer.populated = socket.id
+  newPlayer.populated = socket.id;
   players[socket.id] = newPlayer;
 
-  socket.emit("playerConnected", {
+  socket.emit('playerConnected', {
     currentPlayer: newPlayer,
     world: world,
   });
 
-  socket.on("disconnect", () => {
+  socket.on('disconnect', () => {
     players[socket.id].populated = null;
     delete players[socket.id];
-    console.log("a user disconnected:", socket.id);
+    console.log('a user disconnected:', socket.id);
   });
 
-  socket.on("probeHit", data => probeHit(socket.id, data));
-};
+  socket.on('probeHit', data => probeHit(socket.id, data));
+}
 
 
 // =================================================================
@@ -50,10 +50,7 @@ function probeHit(id, data) {
 // =================================================================
 
 function pushGameState() {
-  const now = Date.now();
-  io.emit("gameStateUpdate", {
-    projectiles: projectiles.filter(p => now - p.firedAt > 1000)
-      .map(p => { return { id: p.id, x: p.x, y: p.y } })
+  io.emit('gameStateUpdate', {
   });
 }
 
@@ -62,10 +59,10 @@ function pushGameState() {
 // Start
 // =================================================================
 
-let world = gameMap.createWorld(20000);
+const world = gameMap.createWorld();
 const players = {};
 
-io.on("connection", newPlayer);
+io.on('connection', newPlayer);
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

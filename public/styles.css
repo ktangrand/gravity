@@ -1,0 +1,33 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: black;
+}
+
+canvas {
+    position: absolute;
+    z-index: 1;
+}
+
+#HUD {
+    pointer-events: none;
+    z-index: 2;
+    display: block;
+    position: fixed;
+    float: left;
+    color: white;
+    font-family: monospace;
+    font-size: large;
+    width: 200;
+    background-color: rgba(64, 64, 64, 0.5);
+    border: 3px solid yellow;
+}
+
+#HUD table {
+    width: 100%
+}
+
+td+td {
+    text-align: right;
+}

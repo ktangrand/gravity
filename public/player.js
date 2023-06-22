@@ -1,18 +1,20 @@
-import * as world from "./world.js";
+import * as world from './world.js';
 let home;
-let angle = 0;
-let power = 20;
+let angle;
+let power;
 let aimC = [];
 
 
 function initPlayer(_home) {
+  console.log(world);
   home = _home;
+  power = 1;
   setAngle(0);
 }
 
 
 function adjustPower(d) {
-  power += d;
+  power *= d;
   aimC = world.calculateAim(home, angle, power);
 }
 
@@ -30,4 +32,4 @@ function sendProbe() {
 }
 
 
-export { initPlayer, adjustPower, setAngle, angle, home, sendProbe, aimC, power }
+export { initPlayer, adjustPower, setAngle, angle, home, sendProbe, aimC, power };
