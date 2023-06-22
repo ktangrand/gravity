@@ -3,8 +3,8 @@ import * as world from './world.js';
 
 let cameraX = 0;
 let cameraY = 0;
-let mx = 0;
-let my = 0;
+let midX = 0;
+let midY = 0;
 let zoom = 1000;
 let canvas;
 let ctx;
@@ -29,7 +29,7 @@ function zoomCamera(delta) {
 
 
 function w2c(x, y) { // Convert from world to canvas coordinates 
-  return [(x - cameraX) * zoom + mx, (y - cameraY) * zoom + my];
+  return [(x - cameraX) * zoom + midX, (y - cameraY) * zoom + midY];
 }
 
 
@@ -60,7 +60,8 @@ function drawResourceStreams() {
 
 
 function drawPlanet(p) {
-  circle(p.x, p.y, p.radius, p.color);
+  const color = ['#008000', '#0000ff', '#808080', '#ffc0cb'][p.color]
+  circle(p.x, p.y, p.radius, );
 }
 
 
@@ -135,8 +136,8 @@ function resize() {
   canvas = document.getElementById('gameCanvas');
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  mx = canvas.width / 2;
-  my = canvas.height / 2;
+  midX = canvas.width / 2;
+  midY = canvas.height / 2;
 }
 
 
