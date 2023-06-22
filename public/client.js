@@ -1,4 +1,5 @@
-import * as gfx from './graphics.js';
+// import * as gfx from './graphics.js';
+import * as gfx from './gfx3d.js';
 import * as gui from './user-interface.js';
 
 // Using [player.js] and [world.js] as singleton objects

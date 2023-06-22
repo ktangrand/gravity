@@ -21,10 +21,10 @@ function generateResources() {
   const materialKgM3 = { 'titanium': 1000, 'antimatter': 700, 'metamaterials': 400 };
 
   const [color, ...resProb] = [  // 
-    ['#008000', ['titanium', 2000, 10000], ['antimatter', 200, 1000]],     // Terrestial
-    ['#0000ff', ['titanium', 1000, 5000], ['metamaterials', 8000, 1000]],  // Ice Giant
-    ['#808080', ['titanium', 3000, 5000], ['antimatter', 5000, 7000]],     // Dense Metal World
-    ['#ffc0cb', ['antimatter', 5000, 8000], ['metamaterials', 5000, 8000]] // Nebula
+    [0, ['titanium', 2000, 10000], ['antimatter', 200, 1000]],     // Terrestial
+    [1, ['titanium', 1000, 5000], ['metamaterials', 8000, 1000]],  // Ice Giant
+    [2, ['titanium', 3000, 5000], ['antimatter', 5000, 7000]],     // Dense Metal World
+    [3, ['antimatter', 5000, 8000], ['metamaterials', 5000, 8000]] // Nebula
   ][random_distribute(60, 20, 10, 10)];
 
   let mass = 0;
@@ -112,7 +112,7 @@ function calcGravity(world, x, y) {
 function findAHome(world) {
   for (let planet of world.planets) {
     // first empty ..green marble
-    if (planet.color === '#008000' && !planet.populated) {
+    if (planet.color === 0 && !planet.populated) {
       planet.resources = {
         'titanium': 1000,
         'antimatter': 200,

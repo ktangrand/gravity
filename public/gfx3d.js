@@ -2,67 +2,34 @@ import * as player from './player.js';
 import * as world from './world.js';
 import * as THREE from 'three';
 
-let cameraX = 0;
-let cameraY = 0;
-let mx = 0;
-let my = 0;
-let zoom = 0.2;
+let camera;
+let renderer;
+let zoom = 1;
 let canvas;
-let ctx;
+let scene;
 
 
 function setCamera(x, y) {
-  cameraX = x;
-  cameraY = y;
+  camera.position.x = x;
+  camera.position.y = y;
 }
 
 
 function panCamera(dx, dy) {
-  cameraX -= dx / zoom;
-  cameraY -= dy / zoom;
+  camera.position.x -= dx / 1000;
+  camera.position.y += dy / 1000;
 }
 
 
 function zoomCamera(delta) {
-  const scaleFactor = 0.05;
-  zoom -= scaleFactor * delta;
-  zoom = Math.min(Math.max(zoom, 0.1), 3);
+  zoom *= delta;
+  zoom = Math.min(Math.max(zoom, 0.5), 2);
+  camera.position.z = zoom;
 }
 
 
 function w2c(x, y) { // Convert from world to canvas coordinates 
   return [(x - cameraX) * zoom + mx, (y - cameraY) * zoom + my];
-}
-
-
-function circle(x, y, radius, color) {
-  ctx.beginPath();
-  ctx.arc(...w2c(x, y), zoom * radius, 0, 2 * Math.PI);
-  ctx.fillStyle = color;
-  ctx.fill();
-}
-
-
-function drawResourceStreams() {
-  const anim = Date.now();
-  for (const [start, end, color] of world.streams) {
-    const dist = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
-    let incr = 800 / dist;
-    for (let i = 0; i < 1 - incr; i += incr) {
-      const a = i + incr * (anim & 255) / 256;
-      circle(end.x - (end.x - start.x) * a, end.y - (end.y - start.y) * a, 8, color);
-    }
-    incr = 200 / dist;
-    for (let i = 0; i < 1 - incr; i += incr) {
-      const a = i + incr * (anim & 255) / 256;
-      circle(end.x - (end.x - start.x) * a, end.y - (end.y - start.y) * a, 6, color);
-    }
-  }
-}
-
-
-function drawPlanet(p) {
-  circle(p.x, p.y, p.radius, p.color);
 }
 
 
@@ -72,7 +39,8 @@ function drawProjectiles() {
 
 
 function drawAim() {
-  ctx.beginPath();
+  return;
+/*  ctx.beginPath();
   ctx.moveTo(...w2c(...player.aimC[0]));
   for (const a of player.aimC) {
     ctx.lineTo(...w2c(...a));
@@ -80,56 +48,43 @@ function drawAim() {
   ctx.strokeStyle = '#103010';
   ctx.lineWidth = 10;
   ctx.stroke();
+*/
 }
 
 
 function drawPlayer() {
-  const { x, y, radius } = player.home;
-  circle(x, y, radius + 20, '#ffffff');
-
-  ctx.beginPath();
-  ctx.moveTo(...w2c(x, y));
-  ctx.lineTo(...w2c(x + player.power * 60 * Math.cos(player.angle),
-    y + player.power * 60 * Math.sin(player.angle)));
-  ctx.strokeStyle = '#ffff00';
-  ctx.lineWidth = 20 * zoom;
-  ctx.stroke();
-  ctx.lineTo(...w2c(x + 20000 * Math.cos(player.angle),
-    y + 20000 * Math.sin(player.angle)));
-  ctx.strokeStyle = '#808080';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-}
-
-
-function drawGrid() {
-  const step = 20000 / 31;
-  ctx.strokeStyle = '#200020';
-  ctx.lineWidth = 1;
-  const [ex, ey] = w2c(20000, 20000);
-  const [zx, zy] = w2c(0, 0);
-  for (let i = 0, g = 0; i < 32; i++, g += step) {
-    const [cx, cy] = w2c(g, g);
-    ctx.moveTo(zx, cy);
-    ctx.lineTo(ex, cy);
-    ctx.stroke();
-    ctx.moveTo(cx, zy);
-    ctx.lineTo(cx, ey);
-    ctx.stroke();
-  }
+  const { x, y, radius, angle, power } = player.home;
 }
 
 
 function render() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.save();
-  drawGrid();
   drawAim();
-  drawResourceStreams();
-  world.planets.forEach(p => drawPlanet(p));
-  drawPlayer(player, world);
-  drawProjectiles();
-  ctx.restore();
+  renderer.render(scene, camera);
+
+//  drawPlayer(player, world);
+//  drawProjectiles();
+}
+
+
+function buildScene() {
+  const geometry = new THREE.IcosahedronGeometry(1, 1);
+  const materials = [
+    new THREE.MeshLambertMaterial({color: 0x008000 }),
+    new THREE.MeshLambertMaterial({color: 0x0000ff }),
+    new THREE.MeshLambertMaterial({color: 0x808080 }),
+    new THREE.MeshLambertMaterial({color: 0xffc0cb })
+  ];
+  for(const p of world.planets) {
+    const material = materials[p.color]
+    const planet = new THREE.Mesh( geometry, material);
+    scene.add( planet );
+    planet.position.x = p.x;
+    planet.position.y = p.y;
+    planet.position.z = 0;
+    planet.scale.x = p.radius;
+    planet.scale.y = p.radius;
+    planet.scale.z = p.radius;
+  }
 }
 
 
@@ -137,20 +92,29 @@ function resize() {
   canvas = document.getElementById('gameCanvas');
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  mx = canvas.width / 2;
-  my = canvas.height / 2;
+  renderer.setSize(canvas.width, canvas.height);
+  camera.aspect = canvas.width / canvas.height;
 }
 
 
 function init() {
-  canvas = document.getElementById('gameCanvas');    
-  const canvas = document.querySelector('#c');
-  const renderer = new THREE.WebGLRenderer({antialias: true, canvas});
+  canvas = document.getElementById('gameCanvas');
+  scene = new THREE.Scene();    
+  renderer = new THREE.WebGLRenderer({antialias: true, canvas});
+  renderer.setSize(canvas.width, canvas.height);
   const fov = 75;
-  const aspect = 2;  // the canvas default
+  const aspect = canvas.width / canvas.height;
   const near = 0.1;
   const far = 5;
-  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  camera.position.z = 1;
+  camera.position.x = 0.5;
+  camera.position.y = 0.5;
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+  scene.add(directionalLight);
+  const ambientLight = new THREE.AmbientLight(0x808080);
+  scene.add(ambientLight);
+  buildScene();
 }
 
 

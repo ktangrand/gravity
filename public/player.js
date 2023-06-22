@@ -6,7 +6,6 @@ let aimC = [];
 
 
 function initPlayer(_home) {
-  console.log(world);
   home = _home;
   power = 1;
   setAngle(0);

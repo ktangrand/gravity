@@ -84,7 +84,5 @@ export {
   initWorld, 
   calculateAim, 
   streams, 
-  planets, 
-  fieldX, 
-  fieldY 
-};
+  planets
+}
