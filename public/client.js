@@ -7,13 +7,12 @@ import * as player from './player.js';
 import * as world from './world.js';
 
 // FOR DEBUGGING
-window.d = {gfx, gui, player, world};
+window.d = { gfx, gui, player, world };
 
 const socket = io();
 
 const canvas = document.getElementById('gameCanvas');
 let mouse = { x: 0, y: 0 };
-
 
 // Socket events:
 
@@ -21,10 +20,9 @@ socket.on('playerConnected', data => initGame(data));
 socket.on('res', data => player.home.resources = data);
 socket.on('probe', data => world.streams.push([player.home, data, data.color]));
 
-
 // User events:
 
-function keyDownEvent({ key }) {
+function keyDownEvent ({ key }) {
   if (['ArrowUp', 'w'].includes(key)) {
     player.adjustPower(1.005);
   } else if (['ArrowDown', 's'].includes(key)) {
@@ -34,8 +32,7 @@ function keyDownEvent({ key }) {
   }
 }
 
-
-function mouseDown(event) {
+function mouseDown (event) {
   if (event.button === 0) {
     event.preventDefault();
     canvas.addEventListener('mouseup', stopDrag);
@@ -48,18 +45,15 @@ function mouseDown(event) {
   }
 }
 
-
-function stopDrag() {
+function stopDrag () {
   canvas.removeEventListener('mousemove', drag);
 }
 
-
-function drag(event) {
+function drag (event) {
   gfx.panCamera(event.movementX, event.movementY);
 }
 
-
-function aim() {
+function aim () {
   const [wx, wy] = gfx.w2c(player.home.x, player.home.y);
   const dx = mouse.x - wx;
   const dy = mouse.y - wy;
@@ -69,36 +63,32 @@ function aim() {
   player.setAngle(Math.atan2(ay, ax));
 }
 
-
-function mouseWheelEvent(event) {
+function mouseWheelEvent (event) {
   event.preventDefault();
   if (event.deltaY !== 0) {
     gfx.zoomCamera(1 + event.deltaY / 1000);
   }
-};
-
+}
 
 // Gameloop:
 
-function updateHUD() {
+function updateHUD () {
   gui.showValue('power', player.power.toFixed(2));
   gui.showValue('angle', (player.angle * 180 / Math.PI).toFixed(3));
-  gui.showValue('titanium', player.home.resources['titanium']);
-  gui.showValue('antimatter', player.home.resources['antimatter']);
-  gui.showValue('metamaterials', player.home.resources['metamaterials']);
+  gui.showValue('titanium', player.home.resources.titanium);
+  gui.showValue('antimatter', player.home.resources.antimatter);
+  gui.showValue('metamaterials', player.home.resources.metamaterials);
 }
 
-
-function gameLoop() {
+function gameLoop () {
   gfx.render();
   updateHUD();
   requestAnimationFrame(gameLoop);
 }
 
-
 // Init:
 
-function initGame(data) {
+function initGame (data) {
   world.initWorld(data.world);
   player.initPlayer(data.currentPlayer);
   gfx.init();

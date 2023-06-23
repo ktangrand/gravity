@@ -1,8 +1,6 @@
-
 const hudElm = document.getElementById('HUD');
 const readOutsElm = document.createElement('table');
 const displayElms = {};
-
 
 for (const disp of ['power', 'angle', 'titanium', 'antimatter', 'metamaterials']) {
   const rowElm = document.createElement('tr');
@@ -15,11 +13,9 @@ for (const disp of ['power', 'angle', 'titanium', 'antimatter', 'metamaterials']
   hudElm.appendChild(readOutsElm);
 }
 
-
-function showValue(name, value) {
+function showValue (name, value) {
   displayElms[name].textContent = value;
 }
-
 
 export {
   showValue

@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 // Handle new Player
 // =================================================================
 
-function newPlayer(socket) {
+function newPlayer (socket) {
   console.log('a user connected:', socket.id);
   const newPlayer = gameMap.findAHome(world);
   newPlayer.populated = socket.id;
@@ -23,7 +23,7 @@ function newPlayer(socket) {
 
   socket.emit('playerConnected', {
     currentPlayer: newPlayer,
-    world: world,
+    world
   });
 
   socket.on('disconnect', () => {
@@ -40,7 +40,7 @@ function newPlayer(socket) {
 // Player actions
 // =================================================================
 
-function probeHit(id, data) {
+function probeHit (id, data) {
 
 }
 
@@ -49,7 +49,7 @@ function probeHit(id, data) {
 // Update game
 // =================================================================
 
-function pushGameState() {
+function pushGameState () {
   io.emit('gameStateUpdate', {
   });
 }

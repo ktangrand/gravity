@@ -5,16 +5,15 @@ const streams = [];
 let fow;
 const fowResolution = 32;
 
-function initWorld(_world) {
+function initWorld (_world) {
   let field;
   ({ field, fieldResolution, planets } = _world);
   fieldX = new DataView(field, 0, field.byteLength / 2);
-  fieldY = new DataView(field, field.byteLength /2, field.byteLength / 2);
+  fieldY = new DataView(field, field.byteLength / 2, field.byteLength / 2);
   fow = new ArrayBuffer(fowResolution * fowResolution * 1);
 }
 
-
-function calculateAim(home, angle, power) {
+function calculateAim (home, angle, power) {
   const aimC = [[home.x, home.y]];
   let ax = home.x + 1.1 * home.radius * Math.cos(angle);
   let ay = home.y + 1.1 * home.radius * Math.sin(angle);
@@ -37,9 +36,8 @@ function calculateAim(home, angle, power) {
   return aimC;
 }
 
-
-function gravity(x, y) {
-  function getf(xi, yi) {
+function gravity (x, y) {
+  function getf (xi, yi) {
     if (xi >= fieldResolution || xi >= fieldResolution) {
       return [0, 0];
     }
@@ -76,13 +74,13 @@ function gravity(x, y) {
   ];
 }
 
-function calculateFOW(path, radius) {
+function calculateFOW (path, radius) {
 
 }
 
-export { 
-  initWorld, 
-  calculateAim, 
-  streams, 
+export {
+  initWorld,
+  calculateAim,
+  streams,
   planets
-}
+};

@@ -9,39 +9,33 @@ let zoom = 1000;
 let canvas;
 let ctx;
 
-
-function setCamera(x, y) {
+function setCamera (x, y) {
   cameraX = x;
   cameraY = y;
 }
 
-
-function panCamera(dx, dy) {
+function panCamera (dx, dy) {
   cameraX -= dx / zoom;
   cameraY -= dy / zoom;
 }
 
-
-function zoomCamera(delta) {
+function zoomCamera (delta) {
   zoom *= delta;
   zoom = Math.min(Math.max(zoom, 100), 2000);
 }
 
-
-function w2c(x, y) { // Convert from world to canvas coordinates 
+function w2c (x, y) { // Convert from world to canvas coordinates
   return [(x - cameraX) * zoom + midX, (y - cameraY) * zoom + midY];
 }
 
-
-function circle(x, y, radius, color) {
+function circle (x, y, radius, color) {
   ctx.beginPath();
   ctx.arc(...w2c(x, y), zoom * radius, 0, 2 * Math.PI);
   ctx.fillStyle = color;
   ctx.fill();
 }
 
-
-function drawResourceStreams() {
+function drawResourceStreams () {
   const anim = Date.now();
   for (const [start, end, color] of world.streams) {
     const dist = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
@@ -58,19 +52,16 @@ function drawResourceStreams() {
   }
 }
 
-
-function drawPlanet(p) {
-  const color = ['#008000', '#0000ff', '#808080', '#ffc0cb'][p.color]
-  circle(p.x, p.y, p.radius, );
+function drawPlanet (p) {
+  const color = ['#008000', '#0000ff', '#808080', '#ffc0cb'][p.color];
+  circle(p.x, p.y, p.radius);
 }
 
-
-function drawProjectiles() {
+function drawProjectiles () {
 
 }
 
-
-function drawAim() {
+function drawAim () {
   ctx.beginPath();
   ctx.moveTo(...w2c(...player.aimC[0]));
   for (const a of player.aimC) {
@@ -81,8 +72,7 @@ function drawAim() {
   ctx.stroke();
 }
 
-
-function drawPlayer() {
+function drawPlayer () {
   const { x, y, radius } = player.home;
   circle(x, y, radius, '#ffffff');
 
@@ -100,8 +90,7 @@ function drawPlayer() {
   ctx.stroke();
 }
 
-
-function drawGrid() {
+function drawGrid () {
   const step = 1 / 31;
   ctx.strokeStyle = '#200020';
   ctx.lineWidth = 1;
@@ -118,8 +107,7 @@ function drawGrid() {
   }
 }
 
-
-function render() {
+function render () {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.save();
   drawGrid();
@@ -131,8 +119,7 @@ function render() {
   ctx.restore();
 }
 
-
-function resize() {
+function resize () {
   canvas = document.getElementById('gameCanvas');
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -140,11 +127,9 @@ function resize() {
   midY = canvas.height / 2;
 }
 
-
-function init() {
+function init () {
   resize();
   ctx = canvas.getContext('2d');
 }
-
 
 export { init, setCamera, panCamera, zoomCamera, render, w2c, resize };
