@@ -31,38 +31,77 @@ function zoomCamera (delta) {
 
 function w2c (x, y) { // Convert from world to canvas coordinates
 
+  // Project the given world point using the camera and convert it from
+  // normalized device coordinates to pixel space on the canvas.
+  const vector = new THREE.Vector3(x, y, 0);
+  vector.project(camera);
+
+  const halfWidth = canvas.width / 2;
+  const halfHeight = canvas.height / 2;
+
+  return [
+    vector.x * halfWidth + halfWidth,
+    -vector.y * halfHeight + halfHeight
+  ];
 }
 
+
+let streamGroup;
 
 function drawProjectiles () {
-
+  if (streamGroup) {
+    scene.remove(streamGroup);
+  }
+  streamGroup = new THREE.Group();
+  const colors = [0xffff00, 0xff00ff, 0x00ffff, 0xffffff];
+  for (const [start, end, color] of world.streams) {
+    const material = new THREE.LineBasicMaterial({ color: colors[color % colors.length] });
+    const points = [
+      new THREE.Vector3(start.x, start.y, 0.01),
+      new THREE.Vector3(end.x, end.y, 0.01)
+    ];
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const line = new THREE.Line(geometry, material);
+    streamGroup.add(line);
+  }
+  scene.add(streamGroup);
 }
 
+
+let aimLine;
 
 function drawAim () {
-/*  ctx.beginPath();
-  ctx.moveTo(...w2c(...player.aimC[0]));
-  for (const a of player.aimC) {
-    ctx.lineTo(...w2c(...a));
+  if (aimLine) {
+    scene.remove(aimLine);
   }
-  ctx.strokeStyle = '#103010';
-  ctx.lineWidth = 10;
-  ctx.stroke();
-*/
+  const points = player.aimC.map(([ax, ay]) => new THREE.Vector3(ax, ay, 0));
+  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  const material = new THREE.LineBasicMaterial({ color: 0x103010 });
+  aimLine = new THREE.Line(geometry, material);
+  scene.add(aimLine);
 }
 
 
+let playerArrow;
+
 function drawPlayer () {
-  const { x, y, radius, angle, power } = player.home;
+  if (playerArrow) {
+    scene.remove(playerArrow);
+  }
+  const home = player.home;
+  const dir = new THREE.Vector3(Math.cos(home.angle), Math.sin(home.angle), 0).normalize();
+  const origin = new THREE.Vector3(home.x, home.y, 0);
+  const length = 0.1 * home.power;
+  playerArrow = new THREE.ArrowHelper(dir, origin, length, 0xffff00);
+  scene.add(playerArrow);
 }
 
 
 function render () {
   drawAim();
+  drawPlayer();
+  drawProjectiles();
   renderer.render(scene, camera);
-
-//  drawPlayer(player, world);
-//  drawProjectiles();
 }
 
 
@@ -93,6 +132,7 @@ function resize () {
   canvas.height = window.innerHeight;
   renderer.setSize(canvas.width, canvas.height);
   camera.aspect = canvas.width / canvas.height;
+  camera.updateProjectionMatrix();
 }
 
 
