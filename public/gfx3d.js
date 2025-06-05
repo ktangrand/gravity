@@ -31,6 +31,18 @@ function zoomCamera (delta) {
 
 function w2c (x, y) { // Convert from world to canvas coordinates
 
+  // Project the given world point using the camera and convert it from
+  // normalized device coordinates to pixel space on the canvas.
+  const vector = new THREE.Vector3(x, y, 0);
+  vector.project(camera);
+
+  const halfWidth = canvas.width / 2;
+  const halfHeight = canvas.height / 2;
+
+  return [
+    vector.x * halfWidth + halfWidth,
+    -vector.y * halfHeight + halfHeight
+  ];
 }
 
 
