@@ -88,10 +88,10 @@ function drawPlayer () {
   if (playerArrow) {
     scene.remove(playerArrow);
   }
-  const { x, y, angle, power } = player.home;
-  const dir = new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0).normalize();
-  const origin = new THREE.Vector3(x, y, 0);
-  const length = 0.1 * power;
+  const home = player.home;
+  const dir = new THREE.Vector3(Math.cos(home.angle), Math.sin(home.angle), 0).normalize();
+  const origin = new THREE.Vector3(home.x, home.y, 0);
+  const length = 0.1 * home.power;
   playerArrow = new THREE.ArrowHelper(dir, origin, length, 0xffff00);
   scene.add(playerArrow);
 }
