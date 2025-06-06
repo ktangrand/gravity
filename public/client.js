@@ -78,6 +78,7 @@ function updateHUD () {
 }
 
 function gameLoop () {
+  world.updateProbes();
   gfx.render();
   updateHUD();
   requestAnimationFrame(gameLoop);
