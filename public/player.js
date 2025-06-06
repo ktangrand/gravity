@@ -7,6 +7,8 @@ let aimC = [];
 function initPlayer (_home) {
   home = _home;
   power = 1;
+  // reveal an initial area around the player's base
+  world.calculateFOW([[home.x, home.y]], home.radius * 2);
   setAngle(0);
 }
 

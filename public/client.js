@@ -18,7 +18,6 @@ let mouse = { x: 0, y: 0 };
 
 socket.on('playerConnected', data => initGame(data));
 socket.on('res', data => player.home.resources = data);
-socket.on('probe', data => world.streams.push([player.home, data, data.color]));
 
 // User events:
 

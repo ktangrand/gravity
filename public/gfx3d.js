@@ -57,26 +57,12 @@ function c2w (x, y) { // Convert from canvas to world coordinates (z=0 plane)
 }
 
 
-let streamGroup;
+
 let probeGroup;
 
 function drawProjectiles () {
-  if (streamGroup) {
-    scene.remove(streamGroup);
-  }
-  streamGroup = new THREE.Group();
-  const colors = [0xffff00, 0xff00ff, 0x00ffff, 0xffffff];
-  for (const [start, end, color] of world.streams) {
-    const material = new THREE.LineBasicMaterial({ color: colors[color % colors.length] });
-    const points = [
-      new THREE.Vector3(start.x, start.y, 0.01),
-      new THREE.Vector3(end.x, end.y, 0.01)
-    ];
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const line = new THREE.Line(geometry, material);
-    streamGroup.add(line);
-  }
-  scene.add(streamGroup);
+  // The old implementation rendered a stream line between the firing planet
+  // and the hit planet. This visualisation has been removed.
 
   if (probeGroup) {
     scene.remove(probeGroup);
@@ -85,10 +71,12 @@ function drawProjectiles () {
   const geom = new THREE.SphereGeometry(0.01, 8, 8);
   const mtl = new THREE.MeshBasicMaterial({ color: 0xffff00 });
   for (const probe of world.probes) {
+    if (!probe.visible) continue;
     const mesh = new THREE.Mesh(geom, mtl);
     mesh.position.set(probe.x, probe.y, 0.05);
     probeGroup.add(mesh);
   }
+
   scene.add(probeGroup);
 }
 
