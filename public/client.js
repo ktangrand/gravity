@@ -92,7 +92,6 @@ function initGame (data) {
   gfx.setCamera(player.home.x, player.home.y);
 
   canvas.addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
-  canvas.addEventListener('mousedown', e => { });
   window.addEventListener('keydown', keyDownEvent);
   canvas.addEventListener('mousedown', mouseDown);
   canvas.addEventListener('wheel', mouseWheelEvent);

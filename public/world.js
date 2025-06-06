@@ -1,7 +1,9 @@
 let fieldResolution;
 let fieldX, fieldY;
 let planets;
+let fowView;
 
+  fowView = new Uint8Array(fow);
 const probes = [];
 let fow;
 const fowResolution = 32;
@@ -80,7 +82,6 @@ function calculateFOW (path, radius) {
   // a single byte per cell which is set to `1` when visible. This simple
   // implementation does not fade visibility over time but is sufficient for
   // revealing projectiles to other players when they enter a cell.
-  const view = new Uint8Array(fow);
   const res = fowResolution;
   const rad = Math.max(1, Math.ceil(radius * res));
   for (const [x, y] of path) {
@@ -90,7 +91,7 @@ function calculateFOW (path, radius) {
       if (yi < 0 || yi >= res) continue;
       for (let xi = cx - rad; xi <= cx + rad; xi++) {
         if (xi < 0 || xi >= res) continue;
-        view[yi * res + xi] = 1; // sample value indicating visibility
+        fowView[yi * res + xi] = 1; // sample value indicating visibility
       }
     }
   }
@@ -101,8 +102,7 @@ function isInFOW (x, y) {
   const xi = Math.floor(x * res);
   const yi = Math.floor(y * res);
   if (xi < 0 || yi < 0 || xi >= res || yi >= res) return false;
-  const view = new Uint8Array(fow);
-  return view[yi * res + xi] !== 0;
+  return fowView[yi * res + xi] !== 0;
 }
 
 function launchProbe (start, angle, power) {
