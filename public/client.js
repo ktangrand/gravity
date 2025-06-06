@@ -18,6 +18,9 @@ let mouse = { x: 0, y: 0 };
 
 socket.on('playerConnected', data => initGame(data));
 socket.on('res', data => player.home.resources = data);
+socket.on('launchProbe', data => {
+  world.launchProbe(data.start, data.angle, data.power);
+});
 
 // User events:
 
@@ -27,6 +30,8 @@ function keyDownEvent ({ key }) {
   } else if (['ArrowDown', 's'].includes(key)) {
     player.adjustPower(0.995);
   } else if (['f'].includes(key)) {
+    const data = { start: player.home, angle: player.angle, power: player.power };
+    socket.emit('launchProbe', data);
     player.sendProbe();
   }
 }

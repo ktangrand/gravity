@@ -125,7 +125,6 @@ function updateProbes () {
     // Reveal fog of war around the projectile's current location
     calculateFOW([[x, y]], 0.02);
     probe.visible = isInFOW(x, y);
-
     probe.step++;
     if (probe.step >= probe.path.length) {
       let target = null;
@@ -137,7 +136,6 @@ function updateProbes () {
           break;
         }
       }
-
       probe.done = true;
     }
   }
@@ -153,7 +151,6 @@ function recalcProbes () {
     probe.step = 1;
     calculateFOW([[probe.x, probe.y]], 0.02);
     probe.visible = isInFOW(probe.x, probe.y);
-
   }
 }
 

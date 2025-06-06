@@ -32,6 +32,10 @@ function newPlayer (socket) {
     console.log('a user disconnected:', socket.id);
   });
 
+  socket.on('launchProbe', data => {
+    socket.broadcast.emit('launchProbe', data);
+  });
+
   socket.on('probeHit', data => probeHit(socket.id, data));
 }
 
