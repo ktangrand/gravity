@@ -45,6 +45,17 @@ function w2c (x, y) { // Convert from world to canvas coordinates
   ];
 }
 
+function c2w (x, y) { // Convert from canvas to world coordinates (z=0 plane)
+  const ndcX = (x / canvas.width) * 2 - 1;
+  const ndcY = -(y / canvas.height) * 2 + 1;
+  const vector = new THREE.Vector3(ndcX, ndcY, 0.5);
+  vector.unproject(camera);
+  const dir = vector.sub(camera.position).normalize();
+  const distance = -camera.position.z / dir.z;
+  const pos = camera.position.clone().add(dir.multiplyScalar(distance));
+  return [pos.x, pos.y];
+}
+
 
 let streamGroup;
 
@@ -162,4 +173,4 @@ function init () {
 }
 
 
-export { init, setCamera, panCamera, zoomCamera, render, w2c, resize };
+export { init, setCamera, panCamera, zoomCamera, render, w2c, c2w, resize };

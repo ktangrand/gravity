@@ -23,7 +23,21 @@ function setAngle (r) {
 }
 
 function sendProbe () {
-
+  const path = world.calculateAim(home, angle, power);
+  if (path.length < 2) {
+    return;
+  }
+  const [x, y] = path[path.length - 1];
+  let target = null;
+  for (const p of world.planets) {
+    const dx = p.x - x;
+    const dy = p.y - y;
+    if (Math.sqrt(dx * dx + dy * dy) <= p.radius) {
+      target = p;
+      break;
+    }
+  }
+  world.streams.push([home, target || { x, y }, target ? target.color : 0]);
 }
 
 export { initPlayer, adjustPower, setAngle, angle, home, sendProbe, aimC, power };
