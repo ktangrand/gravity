@@ -1,6 +1,7 @@
 let fieldResolution;
 let fieldX, fieldY;
 let planets;
+let worldSize = 1;
 const probes = [];
 let fow;
 let fowView;
@@ -8,7 +9,7 @@ const fowResolution = 32;
 
 function initWorld (_world) {
   let field;
-  ({ field, fieldResolution, planets } = _world);
+  ({ field, fieldResolution, planets, size: worldSize = 1 } = _world);
   fieldX = new DataView(field, 0, field.byteLength / 2);
   fieldY = new DataView(field, field.byteLength / 2, field.byteLength / 2);
   fow = new ArrayBuffer(fowResolution * fowResolution * 1);
@@ -25,7 +26,7 @@ function calculateAim (home, angle, power) {
     aimC.push([ax, ay]);
     ax += vx;
     ay += vy;
-    if (ax < 0 || ax > 1 || ay < 0 || ay > 1) {
+    if (ax < 0 || ax > worldSize || ay < 0 || ay > worldSize) {
       break;
     }
     const [gx, gy] = gravity(ax, ay);
@@ -50,8 +51,8 @@ function gravity (x, y) {
     ];
   }
 
-  const xi = x * (fieldResolution - 1);
-  const yi = y * (fieldResolution - 1);
+  const xi = x / worldSize * (fieldResolution - 1);
+  const yi = y / worldSize * (fieldResolution - 1);
   const [gx00, gy00] = getf(xi, yi);
   const [gx10, gy10] = getf(xi + 1, yi);
   const [gx01, gy01] = getf(xi, yi + 1);
@@ -82,10 +83,10 @@ function calculateFOW (path, radius) {
   // implementation does not fade visibility over time but is sufficient for
   // revealing projectiles to other players when they enter a cell.
   const res = fowResolution;
-  const rad = Math.max(1, Math.ceil(radius * res));
+  const rad = Math.max(1, Math.ceil(radius / worldSize * res));
   for (const [x, y] of path) {
-    const cx = Math.floor(x * res);
-    const cy = Math.floor(y * res);
+    const cx = Math.floor(x / worldSize * res);
+    const cy = Math.floor(y / worldSize * res);
     for (let yi = cy - rad; yi <= cy + rad; yi++) {
       if (yi < 0 || yi >= res) continue;
       for (let xi = cx - rad; xi <= cx + rad; xi++) {
@@ -98,8 +99,8 @@ function calculateFOW (path, radius) {
 
 function isInFOW (x, y) {
   const res = fowResolution;
-  const xi = Math.floor(x * res);
-  const yi = Math.floor(y * res);
+  const xi = Math.floor(x / worldSize * res);
+  const yi = Math.floor(y / worldSize * res);
   if (xi < 0 || yi < 0 || xi >= res || yi >= res) return false;
   return fowView[yi * res + xi] !== 0;
 }
@@ -163,5 +164,6 @@ export {
   probes,
   launchProbe,
   updateProbes,
-  recalcProbes
+  recalcProbes,
+  worldSize
 };

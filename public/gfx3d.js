@@ -158,11 +158,12 @@ function init () {
   renderer.setSize(width, height);
   const fov = 75;
   const aspect = width / height;
-  camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 5);
+  const worldSize = world.worldSize || 1;
+  camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, worldSize * 5);
   // camera = new THREE.OrthographicCamera(0, 1, 1, 0, 0.1, 5);
-  camera.position.z = 1;
-  camera.position.x = 0.5;
-  camera.position.y = 0.5;
+  camera.position.z = Math.max(1, worldSize);
+  camera.position.x = worldSize / 2;
+  camera.position.y = worldSize / 2;
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
   const ambientLight = new THREE.AmbientLight(0x808080);
   scene.add(ambientLight);
