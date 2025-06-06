@@ -23,7 +23,7 @@ function setAngle (r) {
 }
 
 function sendProbe () {
-
+  world.launchProbe(home, angle, power);
 }
 
 export { initPlayer, adjustPower, setAngle, angle, home, sendProbe, aimC, power };

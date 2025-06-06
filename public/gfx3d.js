@@ -45,8 +45,20 @@ function w2c (x, y) { // Convert from world to canvas coordinates
   ];
 }
 
+function c2w (x, y) { // Convert from canvas to world coordinates (z=0 plane)
+  const ndcX = (x / canvas.width) * 2 - 1;
+  const ndcY = -(y / canvas.height) * 2 + 1;
+  const vector = new THREE.Vector3(ndcX, ndcY, 0.5);
+  vector.unproject(camera);
+  const dir = vector.sub(camera.position).normalize();
+  const distance = -camera.position.z / dir.z;
+  const pos = camera.position.clone().add(dir.multiplyScalar(distance));
+  return [pos.x, pos.y];
+}
+
 
 let streamGroup;
+let probeGroup;
 
 function drawProjectiles () {
   if (streamGroup) {
@@ -65,6 +77,19 @@ function drawProjectiles () {
     streamGroup.add(line);
   }
   scene.add(streamGroup);
+
+  if (probeGroup) {
+    scene.remove(probeGroup);
+  }
+  probeGroup = new THREE.Group();
+  const geom = new THREE.SphereGeometry(0.01, 8, 8);
+  const mtl = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+  for (const probe of world.probes) {
+    const mesh = new THREE.Mesh(geom, mtl);
+    mesh.position.set(probe.x, probe.y, 0.05);
+    probeGroup.add(mesh);
+  }
+  scene.add(probeGroup);
 }
 
 
@@ -162,4 +187,4 @@ function init () {
 }
 
 
-export { init, setCamera, panCamera, zoomCamera, render, w2c, resize };
+export { init, setCamera, panCamera, zoomCamera, render, w2c, c2w, resize };

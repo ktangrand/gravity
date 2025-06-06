@@ -2,6 +2,7 @@ let fieldResolution;
 let fieldX, fieldY;
 let planets;
 const streams = [];
+const probes = [];
 let fow;
 const fowResolution = 32;
 
@@ -78,9 +79,57 @@ function calculateFOW (path, radius) {
 
 }
 
+function launchProbe (start, angle, power) {
+  const path = calculateAim(start, angle, power);
+  if (path.length < 2) {
+    return;
+  }
+  probes.push({ start, angle, power, path, step: 1 });
+}
+
+function updateProbes () {
+  for (const probe of probes) {
+    if (probe.step >= probe.path.length) {
+      continue;
+    }
+    const [x, y] = probe.path[probe.step];
+    probe.x = x;
+    probe.y = y;
+    probe.step++;
+    if (probe.step >= probe.path.length) {
+      let target = null;
+      for (const p of planets) {
+        const dx = p.x - x;
+        const dy = p.y - y;
+        if (Math.sqrt(dx * dx + dy * dy) <= p.radius) {
+          target = p;
+          break;
+        }
+      }
+      streams.push([probe.start, target || { x, y }, target ? target.color : 0]);
+      probe.done = true;
+    }
+  }
+  for (let i = probes.length - 1; i >= 0; i--) {
+    if (probes[i].done) probes.splice(i, 1);
+  }
+}
+
+function recalcProbes () {
+  for (const probe of probes) {
+    const origin = { x: probe.x, y: probe.y, radius: probe.start.radius };
+    probe.path = calculateAim(origin, probe.angle, probe.power);
+    probe.step = 1;
+  }
+}
+
 export {
   initWorld,
   calculateAim,
   streams,
-  planets
+  planets,
+  probes,
+  launchProbe,
+  updateProbes,
+  recalcProbes
 };
