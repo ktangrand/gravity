@@ -56,7 +56,6 @@ function c2w (x, y) { // Convert from canvas to world coordinates (z=0 plane)
   return [pos.x, pos.y];
 }
 
-
 let probeGroup;
 
 function drawProjectiles () {

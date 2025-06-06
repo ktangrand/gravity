@@ -1,9 +1,6 @@
 let fieldResolution;
 let fieldX, fieldY;
 let planets;
-// Projectiles that have collided were previously added to the `streams` array
-// to draw lines between the starting planet and the destination. This visual
-// indicator has been removed so the array is no longer required.
 const probes = [];
 let fow;
 let fowView;
@@ -128,6 +125,7 @@ function updateProbes () {
     // Reveal fog of war around the projectile's current location
     calculateFOW([[x, y]], 0.02);
     probe.visible = isInFOW(x, y);
+
     probe.step++;
     if (probe.step >= probe.path.length) {
       let target = null;
@@ -139,8 +137,7 @@ function updateProbes () {
           break;
         }
       }
-      // previously a stream line was created here between the start planet and
-      // the destination. This behaviour has been removed.
+
       probe.done = true;
     }
   }
@@ -156,6 +153,7 @@ function recalcProbes () {
     probe.step = 1;
     calculateFOW([[probe.x, probe.y]], 0.02);
     probe.visible = isInFOW(probe.x, probe.y);
+
   }
 }
 
