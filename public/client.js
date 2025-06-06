@@ -18,7 +18,9 @@ let mouse = { x: 0, y: 0 };
 
 socket.on('playerConnected', data => initGame(data));
 socket.on('res', data => player.home.resources = data);
-socket.on('probe', data => world.streams.push([player.home, data, data.color]));
+socket.on('launchProbe', data => {
+  world.launchProbe(data.start, data.angle, data.power);
+});
 
 // User events:
 
@@ -28,6 +30,8 @@ function keyDownEvent ({ key }) {
   } else if (['ArrowDown', 's'].includes(key)) {
     player.adjustPower(0.995);
   } else if (['f'].includes(key)) {
+    const data = { start: player.home, angle: player.angle, power: player.power };
+    socket.emit('launchProbe', data);
     player.sendProbe();
   }
 }
@@ -54,13 +58,10 @@ function drag (event) {
 }
 
 function aim () {
-  const [wx, wy] = gfx.w2c(player.home.x, player.home.y);
-  const dx = mouse.x - wx;
-  const dy = mouse.y - wy;
-  const d = dx * dx + dy * dy;
-  const ax = dx / (d * 0.1) + Math.cos(player.angle);
-  const ay = dy / (d * 0.1) + Math.sin(player.angle);
-  player.setAngle(Math.atan2(ay, ax));
+  const [mx, my] = gfx.c2w(mouse.x, mouse.y);
+  const dx = mx - player.home.x;
+  const dy = my - player.home.y;
+  player.setAngle(Math.atan2(dy, dx));
 }
 
 function mouseWheelEvent (event) {
@@ -81,6 +82,7 @@ function updateHUD () {
 }
 
 function gameLoop () {
+  world.updateProbes();
   gfx.render();
   updateHUD();
   requestAnimationFrame(gameLoop);
@@ -95,7 +97,6 @@ function initGame (data) {
   gfx.setCamera(player.home.x, player.home.y);
 
   canvas.addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
-  canvas.addEventListener('mousedown', e => { });
   window.addEventListener('keydown', keyDownEvent);
   canvas.addEventListener('mousedown', mouseDown);
   canvas.addEventListener('wheel', mouseWheelEvent);

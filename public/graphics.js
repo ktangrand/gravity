@@ -35,22 +35,6 @@ function circle (x, y, radius, color) {
   ctx.fill();
 }
 
-function drawResourceStreams () {
-  const anim = Date.now();
-  for (const [start, end, color] of world.streams) {
-    const dist = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
-    let incr = 800 / dist;
-    for (let i = 0; i < 1 - incr; i += incr) {
-      const a = i + incr * (anim & 255) / 256;
-      circle(end.x - (end.x - start.x) * a, end.y - (end.y - start.y) * a, 8, color);
-    }
-    incr = 200 / dist;
-    for (let i = 0; i < 1 - incr; i += incr) {
-      const a = i + incr * (anim & 255) / 256;
-      circle(end.x - (end.x - start.x) * a, end.y - (end.y - start.y) * a, 6, color);
-    }
-  }
-}
 
 function drawPlanet (p) {
   const color = ['#008000', '#0000ff', '#808080', '#ffc0cb'][p.color];
@@ -112,7 +96,6 @@ function render () {
   ctx.save();
   drawGrid();
   drawAim();
-  drawResourceStreams();
   world.planets.forEach(p => drawPlanet(p));
   drawPlayer(player, world);
   drawProjectiles();
