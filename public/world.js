@@ -1,9 +1,6 @@
 let fieldResolution;
 let fieldX, fieldY;
 let planets;
-// Projectiles that have collided were previously added to the `streams` array
-// to draw lines between the starting planet and the destination. This visual
-// indicator has been removed so the array is no longer required.
 const probes = [];
 let fow;
 let fowView;
@@ -139,8 +136,6 @@ function updateProbes () {
           break;
         }
       }
-      // previously a stream line was created here between the start planet and
-      // the destination. This behaviour has been removed.
       probe.done = true;
     }
   }
