@@ -1,7 +1,10 @@
 let fieldResolution;
 let fieldX, fieldY;
 let planets;
-const streams = [];
+// Projectiles that have collided were previously added to the `streams` array
+// to draw lines between the starting planet and the destination. This visual
+// indicator has been removed so the array is no longer required.
+const probes = [];
 let fow;
 const fowResolution = 32;
 
@@ -75,12 +78,95 @@ function gravity (x, y) {
 }
 
 function calculateFOW (path, radius) {
+  // Calculate fog-of-war visibility along the provided path. The fog buffer is
+  // a single byte per cell which is set to `1` when visible. This simple
+  // implementation does not fade visibility over time but is sufficient for
+  // revealing projectiles to other players when they enter a cell.
+  const view = new Uint8Array(fow);
+  const res = fowResolution;
+  const rad = Math.max(1, Math.ceil(radius * res));
+  for (const [x, y] of path) {
+    const cx = Math.floor(x * res);
+    const cy = Math.floor(y * res);
+    for (let yi = cy - rad; yi <= cy + rad; yi++) {
+      if (yi < 0 || yi >= res) continue;
+      for (let xi = cx - rad; xi <= cx + rad; xi++) {
+        if (xi < 0 || xi >= res) continue;
+        view[yi * res + xi] = 1; // sample value indicating visibility
+      }
+    }
+  }
+}
 
+function isInFOW (x, y) {
+  const res = fowResolution;
+  const xi = Math.floor(x * res);
+  const yi = Math.floor(y * res);
+  if (xi < 0 || yi < 0 || xi >= res || yi >= res) return false;
+  const view = new Uint8Array(fow);
+  return view[yi * res + xi] !== 0;
+}
+
+function launchProbe (start, angle, power) {
+  const path = calculateAim(start, angle, power);
+  if (path.length < 2) {
+    return;
+  }
+  const [x, y] = path[1];
+  calculateFOW([[x, y]], 0.02);
+  probes.push({ start, angle, power, path, step: 1, x, y, visible: isInFOW(x, y) });
+}
+
+function updateProbes () {
+  for (const probe of probes) {
+    if (probe.step >= probe.path.length) {
+      continue;
+    }
+    const [x, y] = probe.path[probe.step];
+    probe.x = x;
+    probe.y = y;
+    // Reveal fog of war around the projectile's current location
+    calculateFOW([[x, y]], 0.02);
+    probe.visible = isInFOW(x, y);
+    probe.step++;
+    if (probe.step >= probe.path.length) {
+      let target = null;
+      for (const p of planets) {
+        const dx = p.x - x;
+        const dy = p.y - y;
+        if (Math.sqrt(dx * dx + dy * dy) <= p.radius) {
+          target = p;
+          break;
+        }
+      }
+      // previously a stream line was created here between the start planet and
+      // the destination. This behaviour has been removed.
+      probe.done = true;
+    }
+  }
+  for (let i = probes.length - 1; i >= 0; i--) {
+    if (probes[i].done) probes.splice(i, 1);
+  }
+}
+
+function recalcProbes () {
+  for (const probe of probes) {
+    const origin = { x: probe.x, y: probe.y, radius: probe.start.radius };
+    probe.path = calculateAim(origin, probe.angle, probe.power);
+    probe.step = 1;
+    calculateFOW([[probe.x, probe.y]], 0.02);
+    probe.visible = isInFOW(probe.x, probe.y);
+  }
 }
 
 export {
   initWorld,
   calculateAim,
-  streams,
-  planets
+  calculateFOW,
+  isInFOW,
+  planets,
+  probes,
+  launchProbe,
+  updateProbes,
+  recalcProbes
 };

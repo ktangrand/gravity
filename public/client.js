@@ -18,7 +18,6 @@ let mouse = { x: 0, y: 0 };
 
 socket.on('playerConnected', data => initGame(data));
 socket.on('res', data => player.home.resources = data);
-socket.on('probe', data => world.streams.push([player.home, data, data.color]));
 
 // User events:
 
@@ -54,13 +53,10 @@ function drag (event) {
 }
 
 function aim () {
-  const [wx, wy] = gfx.w2c(player.home.x, player.home.y);
-  const dx = mouse.x - wx;
-  const dy = mouse.y - wy;
-  const d = dx * dx + dy * dy;
-  const ax = dx / (d * 0.1) + Math.cos(player.angle);
-  const ay = dy / (d * 0.1) + Math.sin(player.angle);
-  player.setAngle(Math.atan2(ay, ax));
+  const [mx, my] = gfx.c2w(mouse.x, mouse.y);
+  const dx = mx - player.home.x;
+  const dy = my - player.home.y;
+  player.setAngle(Math.atan2(dy, dx));
 }
 
 function mouseWheelEvent (event) {
@@ -81,6 +77,7 @@ function updateHUD () {
 }
 
 function gameLoop () {
+  world.updateProbes();
   gfx.render();
   updateHUD();
   requestAnimationFrame(gameLoop);
