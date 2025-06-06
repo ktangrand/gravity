@@ -58,6 +58,7 @@ function c2w (x, y) { // Convert from canvas to world coordinates (z=0 plane)
 
 
 let streamGroup;
+let probeGroup;
 
 function drawProjectiles () {
   if (streamGroup) {
@@ -76,6 +77,19 @@ function drawProjectiles () {
     streamGroup.add(line);
   }
   scene.add(streamGroup);
+
+  if (probeGroup) {
+    scene.remove(probeGroup);
+  }
+  probeGroup = new THREE.Group();
+  const geom = new THREE.SphereGeometry(0.01, 8, 8);
+  const mtl = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+  for (const probe of world.probes) {
+    const mesh = new THREE.Mesh(geom, mtl);
+    mesh.position.set(probe.x, probe.y, 0.05);
+    probeGroup.add(mesh);
+  }
+  scene.add(probeGroup);
 }
 
 
