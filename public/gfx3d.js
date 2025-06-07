@@ -31,8 +31,8 @@ function zoomCamera (delta) {
 
 function updateWorldScale () {
   const ws = world.worldSize || 1;
-  camera.far = ws * 5;
-  camera.position.z = Math.max(1, ws);
+  camera.far = ws * 10;
+  camera.position.z = Math.max(1, ws * 1.5);
   camera.position.x = ws / 2;
   camera.position.y = ws / 2;
   camera.updateProjectionMatrix();
@@ -200,9 +200,8 @@ function init () {
   const fov = 75;
   const aspect = width / height;
   const worldSize = world.worldSize || 1;
-  camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, worldSize * 5);
-  // camera = new THREE.OrthographicCamera(0, 1, 1, 0, 0.1, 5);
-  camera.position.z = Math.max(1, worldSize);
+  camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, worldSize * 10);
+  camera.position.z = Math.max(1, worldSize * 1.5);
   camera.position.x = worldSize / 2;
   camera.position.y = worldSize / 2;
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);

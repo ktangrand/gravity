@@ -15,6 +15,7 @@ function initWorld (_world) {
   fieldY = new DataView(field, field.byteLength / 2, field.byteLength / 2);
   fow = new ArrayBuffer(fowResolution * fowResolution * 1);
   fowView = new Uint8Array(fow);
+  probes.length = 0;
 }
 
 function calculateAim (home, angle, power) {

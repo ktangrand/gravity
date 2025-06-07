@@ -108,15 +108,8 @@ function initGame (data) {
   gfx.init();
   gfx.setCamera(player.home.x, player.home.y);
   gui.setupWorldSize(world.worldSize);
-  gui.onWorldSizeChange(size => {
-    const old = world.worldSize;
-    world.setWorldSize(size);
-    const factor = size / old;
-    player.rescaleWorld(factor);
-    gfx.updateWorldScale();
-    gfx.updatePlanets();
-
-    gfx.setCamera(player.home.x, player.home.y);
+  gui.onGenerateWorld(size => {
+    socket.emit('generateWorld', { size });
   });
 
   canvas.addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
