@@ -111,9 +111,9 @@ function initGame (data) {
   player.initPlayer(data.currentPlayer);
   gfx.init();
   gfx.setCamera(player.home.x, player.home.y);
-  gui.setupWorldSize(world.worldSize);
-  gui.onGenerateWorld(size => {
-    socket.emit('generateWorld', { size });
+  gui.setupWorldSize(world.worldSize, world.planets.length, data.world.G_CONSTANT);
+  gui.onGenerateWorld(params => {
+    socket.emit('generateWorld', params);
   });
 
   canvas.addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });

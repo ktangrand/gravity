@@ -43,7 +43,9 @@ function newPlayer (socket) {
 
   socket.on('generateWorld', data => {
     const size = parseFloat(data.size) || 1;
-    regenerateWorld(size);
+    const planetCount = parseInt(data.planetCount) || 100;
+    const gravityScale = parseFloat(data.gravityScale) || 1;
+    regenerateWorld(size, planetCount, gravityScale);
   });
 }
 
@@ -66,9 +68,9 @@ function pushGameState () {
   });
 }
 
-function regenerateWorld (size) {
+function regenerateWorld (size, planetCount, gravityScale) {
   worldSize = size;
-  world = gameMap.createWorld(worldSize);
+  world = gameMap.createWorld(worldSize, { planetCount, gravityScale });
   for (const id of Object.keys(players)) {
     const socket = io.sockets.sockets.get(id);
     if (socket) {
@@ -83,7 +85,7 @@ function regenerateWorld (size) {
 // =================================================================
 
 let worldSize = 1;
-let world = gameMap.createWorld(worldSize);
+let world = gameMap.createWorld(worldSize, { planetCount: 100, gravityScale: 1 });
 const players = {};
 
 io.on('connection', newPlayer);

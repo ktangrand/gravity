@@ -15,13 +15,17 @@ for (const disp of ['power', 'angle', 'titanium', 'antimatter', 'metamaterials']
 
 const rangeElm = document.getElementById('worldSizeRange');
 const numberElm = document.getElementById('worldSizeNumber');
+const planetCountElm = document.getElementById('planetCountNumber');
+const gravityScaleElm = document.getElementById('gravityScale');
 const applyElm = document.getElementById('applyWorldSize');
 let worldSizeChangeCb = null;
 let worldGenerateCb = null;
 
-function setupWorldSize (value) {
+function setupWorldSize (value, planetCount, gravityScale) {
   rangeElm.value = value;
   numberElm.value = value;
+  if (planetCount !== undefined) planetCountElm.value = planetCount;
+  if (gravityScale !== undefined) gravityScaleElm.value = gravityScale;
 }
 
 rangeElm.addEventListener('input', () => { numberElm.value = rangeElm.value; });
@@ -34,7 +38,13 @@ numberElm.addEventListener('change', () => {
 });
 
 applyElm.addEventListener('click', () => {
-  if (worldGenerateCb) worldGenerateCb(parseFloat(rangeElm.value));
+  if (worldGenerateCb) {
+    worldGenerateCb({
+      size: parseFloat(rangeElm.value),
+      planetCount: parseInt(planetCountElm.value),
+      gravityScale: parseFloat(gravityScaleElm.value)
+    });
+  }
 });
 
 function onWorldSizeChange (cb) {
