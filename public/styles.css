@@ -28,6 +28,10 @@ canvas {
     pointer-events: auto;
 }
 
+#HUD button {
+    pointer-events: auto;
+}
+
 #HUD table {
     width: 100%
 }

@@ -15,7 +15,9 @@ for (const disp of ['power', 'angle', 'titanium', 'antimatter', 'metamaterials']
 
 const rangeElm = document.getElementById('worldSizeRange');
 const numberElm = document.getElementById('worldSizeNumber');
+const applyElm = document.getElementById('applyWorldSize');
 let worldSizeChangeCb = null;
+let worldGenerateCb = null;
 
 function setupWorldSize (value) {
   rangeElm.value = value;
@@ -31,8 +33,16 @@ numberElm.addEventListener('change', () => {
   if (worldSizeChangeCb) worldSizeChangeCb(parseFloat(numberElm.value));
 });
 
+applyElm.addEventListener('click', () => {
+  if (worldGenerateCb) worldGenerateCb(parseFloat(rangeElm.value));
+});
+
 function onWorldSizeChange (cb) {
   worldSizeChangeCb = cb;
+}
+
+function onGenerateWorld (cb) {
+  worldGenerateCb = cb;
 }
 
 function showValue (name, value) {
@@ -42,5 +52,6 @@ function showValue (name, value) {
 export {
   showValue,
   onWorldSizeChange,
-  setupWorldSize
+  setupWorldSize,
+  onGenerateWorld
 };
