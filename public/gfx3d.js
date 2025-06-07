@@ -28,6 +28,15 @@ function zoomCamera (delta) {
   camera.position.z = zoom;
 }
 
+function updateWorldScale () {
+  const ws = world.worldSize || 1;
+  camera.far = ws * 5;
+  camera.position.z = Math.max(1, ws);
+  camera.position.x = ws / 2;
+  camera.position.y = ws / 2;
+  camera.updateProjectionMatrix();
+}
+
 
 function w2c (x, y) { // Convert from world to canvas coordinates
 
@@ -173,4 +182,4 @@ function init () {
 }
 
 
-export { init, setCamera, panCamera, zoomCamera, render, w2c, c2w, resize };
+export { init, setCamera, panCamera, zoomCamera, render, w2c, c2w, resize, updateWorldScale };
