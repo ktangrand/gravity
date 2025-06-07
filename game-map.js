@@ -34,11 +34,13 @@ function generateResources () {
   }
 
   mass = mass / 1_000_000;
+  const radius = Math.cbrt((3 * volume) / (4 * Math.PI)) / 100;
+  const variability = 0.5 + Math.random();
   return {
-    mass,
+    mass: mass * variability,
     color,
     resources,
-    radius: Math.cbrt((3 * volume) / (4 * Math.PI)) / 100
+    radius: radius * variability
   };
 }
 
@@ -46,7 +48,8 @@ function createWorld (size = 1) {
   const worldSize = size;
   const planets = [];
   // Random planets
-  for (let nr = 1; nr < 100; nr++) {
+  const planetCount = getRandomInt(80, 150);
+  for (let nr = 1; nr <= planetCount; nr++) {
     planets.push({
       x: Math.random() * worldSize,
       y: Math.random() * worldSize,
@@ -59,7 +62,7 @@ function createWorld (size = 1) {
   const fieldResolution = 256;
   const world = {
     fieldResolution,
-    G_CONSTANT: 0.00000004,
+    G_CONSTANT: 0.0000001,
     size: worldSize,
     planets
   };
