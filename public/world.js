@@ -2,15 +2,16 @@ let fieldResolution;
 let fieldX, fieldY;
 let planets;
 let worldSize = 1;
-let gConstant = 0.00000004;
+let gConstant = 0.0000001;
 const probes = [];
+const projectileSpeed = 0.007;
 let fow;
 let fowView;
 const fowResolution = 32;
 
 function initWorld (_world) {
   let field;
-  ({ field, fieldResolution, planets, size: worldSize = 1, G_CONSTANT: gConstant = 0.00000004 } = _world);
+  ({ field, fieldResolution, planets, size: worldSize = 1, G_CONSTANT: gConstant = 0.0000001 } = _world);
   fieldX = new DataView(field, 0, field.byteLength / 2);
   fieldY = new DataView(field, field.byteLength / 2, field.byteLength / 2);
   fow = new ArrayBuffer(fowResolution * fowResolution * 1);
@@ -22,8 +23,8 @@ function calculateAim (home, angle, power) {
   const aimC = [[home.x, home.y]];
   let ax = home.x + 1.1 * home.radius * Math.cos(angle);
   let ay = home.y + 1.1 * home.radius * Math.sin(angle);
-  let vx = 0.01 * Math.cos(angle) * power;
-  let vy = 0.01 * Math.sin(angle) * power;
+  let vx = projectileSpeed * Math.cos(angle) * power;
+  let vy = projectileSpeed * Math.sin(angle) * power;
   for (let i = 0; i < 1000; i++) {
     aimC.push([ax, ay]);
     ax += vx;
