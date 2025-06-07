@@ -44,11 +44,12 @@ function generateResources () {
   };
 }
 
-function createWorld (size = 1) {
+function createWorld (size = 1, options = {}) {
   const worldSize = size;
   const planets = [];
   // Random planets
-  const planetCount = getRandomInt(80, 150);
+  const planetCount = options.planetCount || getRandomInt(80, 150);
+  const gravityScale = options.gravityScale || 1;
   for (let nr = 1; nr <= planetCount; nr++) {
     planets.push({
       x: Math.random() * worldSize,
@@ -62,7 +63,7 @@ function createWorld (size = 1) {
   const fieldResolution = 256;
   const world = {
     fieldResolution,
-    G_CONSTANT: 0.0000001,
+    G_CONSTANT: 0.0000001 * gravityScale,
     size: worldSize,
     planets
   };
