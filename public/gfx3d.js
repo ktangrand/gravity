@@ -173,6 +173,7 @@ function updatePlanets () {
 
 
 function resize () {
+  if (!canvas || !renderer || !camera) return;
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   renderer.setSize(canvas.width, canvas.height);
