@@ -7,6 +7,7 @@ let renderer;
 let zoom = 1;
 let canvas;
 let scene;
+let planetMeshes = [];
 
 
 function setCamera (x, y) {
@@ -26,6 +27,15 @@ function zoomCamera (delta) {
   zoom = Math.min(Math.max(zoom, 0.5), 2);
   //  camera.position.z = zoom;
   camera.position.z = zoom;
+}
+
+function updateWorldScale () {
+  const ws = world.worldSize || 1;
+  camera.far = ws * 10;
+  camera.position.z = Math.max(1, ws * 1.5);
+  camera.position.x = ws / 2;
+  camera.position.y = ws / 2;
+  camera.updateProjectionMatrix();
 }
 
 
@@ -100,9 +110,28 @@ function drawPlayer () {
   }
   const home = player.home;
   const dir = new THREE.Vector3(Math.cos(home.angle), Math.sin(home.angle), 0).normalize();
-  const origin = new THREE.Vector3(home.x, home.y, 0);
-  const length = 0.1 * home.power;
-  playerArrow = new THREE.ArrowHelper(dir, origin, length, 0xffff00);
+  const group = new THREE.Group();
+  const maxLen = 0.4;
+  const len = Math.min(maxLen, 0.1 * home.power);
+  const baseGeom = new THREE.BoxGeometry(maxLen, 0.01, 0.01);
+  const baseMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const base = new THREE.Mesh(baseGeom, baseMat);
+  base.position.set(home.x + dir.x * maxLen / 2, home.y + dir.y * maxLen / 2, 0.06);
+  base.rotation.z = home.angle;
+  group.add(base);
+  const color = new THREE.Color(0x00ff00).lerp(new THREE.Color(0xff0000), len / maxLen);
+  const fillGeom = new THREE.BoxGeometry(len, 0.02, 0.02);
+  const fillMat = new THREE.MeshBasicMaterial({ color });
+  const fill = new THREE.Mesh(fillGeom, fillMat);
+  fill.position.set(home.x + dir.x * len / 2, home.y + dir.y * len / 2, 0.07);
+  fill.rotation.z = home.angle;
+  group.add(fill);
+  const headGeom = new THREE.ConeGeometry(0.03, 0.05, 8);
+  const head = new THREE.Mesh(headGeom, fillMat);
+  head.position.set(home.x + dir.x * (len + 0.025), home.y + dir.y * (len + 0.025), 0.07);
+  head.rotation.z = home.angle - Math.PI / 2;
+  group.add(head);
+  playerArrow = group;
   scene.add(playerArrow);
 }
 
@@ -127,12 +156,24 @@ function buildScene () {
     const material = materials[p.color];
     const planet = new THREE.Mesh(geometry, material);
     scene.add(planet);
+    planetMeshes.push(planet);
     planet.position.x = p.x;
     planet.position.y = p.y;
     planet.position.z = 0;
     planet.scale.x = p.radius;
     planet.scale.y = p.radius;
     planet.scale.z = p.radius;
+  }
+}
+
+function updatePlanets () {
+  for (let i = 0; i < planetMeshes.length; i++) {
+    const mesh = planetMeshes[i];
+    const p = world.planets[i];
+    if (!mesh || !p) continue;
+    mesh.position.x = p.x;
+    mesh.position.y = p.y;
+    mesh.scale.set(p.radius, p.radius, p.radius);
   }
 }
 
@@ -158,11 +199,12 @@ function init () {
   renderer.setSize(width, height);
   const fov = 75;
   const aspect = width / height;
-  camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 5);
+  const worldSize = world.worldSize || 1;
+  camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, worldSize * 10);
   // camera = new THREE.OrthographicCamera(0, 1, 1, 0, 0.1, 5);
-  camera.position.z = 1;
-  camera.position.x = 0.5;
-  camera.position.y = 0.5;
+  camera.position.z = Math.max(1, worldSize * 1.5);
+  camera.position.x = worldSize / 2;
+  camera.position.y = worldSize / 2;
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
   const ambientLight = new THREE.AmbientLight(0x808080);
   scene.add(ambientLight);
@@ -172,4 +214,4 @@ function init () {
 }
 
 
-export { init, setCamera, panCamera, zoomCamera, render, w2c, c2w, resize };
+export { init, setCamera, panCamera, zoomCamera, render, w2c, c2w, resize, updateWorldScale, updatePlanets };

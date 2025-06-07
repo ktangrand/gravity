@@ -15,16 +15,19 @@ const PORT = process.env.PORT || 3000;
 // Handle new Player
 // =================================================================
 
-function newPlayer (socket) {
-  console.log('a user connected:', socket.id);
-  const newPlayer = gameMap.findAHome(world);
-  newPlayer.populated = socket.id;
-  players[socket.id] = newPlayer;
-
+function sendWorld (socket) {
+  const p = gameMap.findAHome(world);
+  p.populated = socket.id;
+  players[socket.id] = p;
   socket.emit('playerConnected', {
-    currentPlayer: newPlayer,
+    currentPlayer: p,
     world
   });
+}
+
+function newPlayer (socket) {
+  console.log('a user connected:', socket.id);
+  sendWorld(socket);
 
   socket.on('disconnect', () => {
     players[socket.id].populated = null;
@@ -37,6 +40,11 @@ function newPlayer (socket) {
   });
 
   socket.on('probeHit', data => probeHit(socket.id, data));
+
+  socket.on('generateWorld', data => {
+    const size = parseFloat(data.size) || 1;
+    regenerateWorld(size);
+  });
 }
 
 
@@ -58,12 +66,24 @@ function pushGameState () {
   });
 }
 
+function regenerateWorld (size) {
+  worldSize = size;
+  world = gameMap.createWorld(worldSize);
+  for (const id of Object.keys(players)) {
+    const socket = io.sockets.sockets.get(id);
+    if (socket) {
+      sendWorld(socket);
+    }
+  }
+}
+
 
 // =================================================================
 // Start
 // =================================================================
 
-const world = gameMap.createWorld();
+let worldSize = 1;
+let world = gameMap.createWorld(worldSize);
 const players = {};
 
 io.on('connection', newPlayer);

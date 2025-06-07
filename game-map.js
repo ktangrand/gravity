@@ -41,13 +41,14 @@ function generateResources () {
   };
 }
 
-function createWorld () {
+function createWorld (size = 1) {
+  const worldSize = size;
   const planets = [];
   // Random planets
   for (let nr = 1; nr < 100; nr++) {
     planets.push({
-      x: Math.random(),
-      y: Math.random(),
+      x: Math.random() * worldSize,
+      y: Math.random() * worldSize,
       populated: null,
       nr,
       ...generateResources()
@@ -58,6 +59,7 @@ function createWorld () {
   const world = {
     fieldResolution,
     G_CONSTANT: 0.00000004,
+    size: worldSize,
     planets
   };
 
@@ -67,7 +69,7 @@ function createWorld () {
   const buffer = new ArrayBuffer(fieldResolution ** 2 * 4 * 2);
   const fxF32 = new DataView(buffer);
   const fyF32 = new DataView(buffer, buffer.byteLength / 2);
-  const worldStep = 1 / (fieldResolution - 1);
+  const worldStep = worldSize / (fieldResolution - 1);
   for (let y = 0; y < fieldResolution; y++) {
     const rowOfs = y * fieldResolution;
     for (let x = 0; x < fieldResolution; x++) {
