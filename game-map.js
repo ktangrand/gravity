@@ -1,6 +1,7 @@
 // =================================================================
 // Generate new world
 // =================================================================
+const WORLD_SIZE = 1;
 
 function getRandomInt (min, max) {
   return Math.floor(Math.random() * (max - min) + min);

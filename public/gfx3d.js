@@ -201,7 +201,6 @@ function init () {
   const aspect = width / height;
   const worldSize = world.worldSize || 1;
   camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, worldSize * 10);
-  // camera = new THREE.OrthographicCamera(0, 1, 1, 0, 0.1, 5);
   camera.position.z = Math.max(1, worldSize * 1.5);
   camera.position.x = worldSize / 2;
   camera.position.y = worldSize / 2;
@@ -212,6 +211,5 @@ function init () {
   buildScene();
   resize();
 }
-
 
 export { init, setCamera, panCamera, zoomCamera, render, w2c, c2w, resize, updateWorldScale, updatePlanets };
