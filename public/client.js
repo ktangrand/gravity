@@ -14,6 +14,7 @@ const socket = io();
 const canvas = document.getElementById('gameCanvas');
 let mouse = { x: 0, y: 0 };
 let aiming = false;
+let lastFrameTime = 0;
 
 // Socket events:
 
@@ -93,8 +94,11 @@ function updateHUD () {
   gui.showValue('metamaterials', player.home.resources.metamaterials);
 }
 
-function gameLoop () {
-  world.updateProbes();
+function gameLoop (timestamp) {
+  if (!lastFrameTime) lastFrameTime = timestamp;
+  const deltaTime = (timestamp - lastFrameTime) / 1000;
+  lastFrameTime = timestamp;
+  world.updateProbes(deltaTime);
   gfx.render();
   updateHUD();
   requestAnimationFrame(gameLoop);
@@ -119,5 +123,5 @@ function initGame (data) {
   canvas.addEventListener('contextmenu', e => e.preventDefault());
   window.addEventListener('resize', gfx.resize);
   // Start game
-  gameLoop();
+  requestAnimationFrame(gameLoop);
 }

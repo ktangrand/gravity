@@ -5,6 +5,7 @@ let worldSize = 1;
 let gConstant = 0.0000001;
 const probes = [];
 const projectileSpeed = 0.007;
+const STEP_DURATION = 1 / 60; // seconds per path step
 let fow;
 let fowView;
 const fowResolution = 32;
@@ -162,32 +163,37 @@ function launchProbe (start, angle, power) {
   }
   const [x, y] = path[1];
   calculateFOW([[x, y]], 0.02);
-  probes.push({ start, angle, power, path, step: 1, x, y, visible: isInFOW(x, y) });
+  probes.push({ start, angle, power, path, step: 1, progress: 0, x, y, visible: isInFOW(x, y) });
 }
 
-function updateProbes () {
+function updateProbes (dt = STEP_DURATION) {
   for (const probe of probes) {
     if (probe.step >= probe.path.length) {
       continue;
     }
-    const [x, y] = probe.path[probe.step];
-    probe.x = x;
-    probe.y = y;
-    // Reveal fog of war around the projectile's current location
-    calculateFOW([[x, y]], 0.02);
-    probe.visible = isInFOW(x, y);
-    probe.step++;
-    if (probe.step >= probe.path.length) {
-      let target = null;
-      for (const p of planets) {
-        const dx = p.x - x;
-        const dy = p.y - y;
-        if (Math.sqrt(dx * dx + dy * dy) <= p.radius) {
-          target = p;
-          break;
+    probe.progress += dt / STEP_DURATION;
+    while (probe.progress >= 1 && probe.step < probe.path.length) {
+      const [x, y] = probe.path[probe.step];
+      probe.x = x;
+      probe.y = y;
+      // Reveal fog of war around the projectile's current location
+      calculateFOW([[x, y]], 0.02);
+      probe.visible = isInFOW(x, y);
+      probe.step++;
+      probe.progress -= 1;
+      if (probe.step >= probe.path.length) {
+        let target = null;
+        for (const p of planets) {
+          const dx = p.x - x;
+          const dy = p.y - y;
+          if (Math.sqrt(dx * dx + dy * dy) <= p.radius) {
+            target = p;
+            break;
+          }
         }
+        probe.done = true;
+        break;
       }
-      probe.done = true;
     }
   }
   for (let i = probes.length - 1; i >= 0; i--) {
@@ -200,6 +206,7 @@ function recalcProbes () {
     const origin = { x: probe.x, y: probe.y, radius: probe.start.radius };
     probe.path = calculateAim(origin, probe.angle, probe.power);
     probe.step = 1;
+    probe.progress = 0;
     calculateFOW([[probe.x, probe.y]], 0.02);
     probe.visible = isInFOW(probe.x, probe.y);
   }
