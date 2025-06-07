@@ -117,8 +117,7 @@ function initGame (data) {
   canvas.addEventListener('mousedown', mouseDown);
   canvas.addEventListener('wheel', mouseWheelEvent);
   canvas.addEventListener('contextmenu', e => e.preventDefault());
+  window.addEventListener('resize', gfx.resize);
   // Start game
   gameLoop();
 }
-
-window.addEventListener('resize', gfx.resize);
