@@ -28,4 +28,11 @@ function sendProbe () {
   world.launchProbe(home, angle, power);
 }
 
-export { initPlayer, adjustPower, setAngle, angle, home, sendProbe, aimC, power };
+function rescaleWorld (factor) {
+  home.x *= factor;
+  home.y *= factor;
+  home.radius *= factor;
+  aimC = world.calculateAim(home, angle, power);
+}
+
+export { initPlayer, adjustPower, setAngle, angle, home, sendProbe, aimC, power, rescaleWorld };

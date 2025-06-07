@@ -109,8 +109,13 @@ function initGame (data) {
   gfx.setCamera(player.home.x, player.home.y);
   gui.setupWorldSize(world.worldSize);
   gui.onWorldSizeChange(size => {
+    const old = world.worldSize;
     world.setWorldSize(size);
+    const factor = size / old;
+    player.rescaleWorld(factor);
     gfx.updateWorldScale();
+    gfx.updatePlanets();
+
     gfx.setCamera(player.home.x, player.home.y);
   });
 

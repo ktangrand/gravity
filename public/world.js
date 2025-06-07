@@ -142,7 +142,13 @@ function recalcField () {
 }
 
 function setWorldSize (size) {
+  const factor = size / worldSize;
   worldSize = size;
+  for (const p of planets) {
+    p.x *= factor;
+    p.y *= factor;
+    p.radius *= factor;
+  }
   recalcField();
   recalcProbes();
 }
