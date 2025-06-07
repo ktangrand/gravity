@@ -115,6 +115,7 @@ function initGame (data) {
     player.rescaleWorld(factor);
     gfx.updateWorldScale();
     gfx.updatePlanets();
+
     gfx.setCamera(player.home.x, player.home.y);
   });
 

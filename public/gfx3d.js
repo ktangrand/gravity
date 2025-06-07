@@ -213,5 +213,4 @@ function init () {
   resize();
 }
 
-
 export { init, setCamera, panCamera, zoomCamera, render, w2c, c2w, resize, updateWorldScale, updatePlanets };
