@@ -13,6 +13,7 @@ const socket = io();
 
 const canvas = document.getElementById('gameCanvas');
 let mouse = { x: 0, y: 0 };
+let aiming = false;
 
 // Socket events:
 
@@ -43,9 +44,16 @@ function mouseDown (event) {
     canvas.addEventListener('mouseleave', stopDrag);
     canvas.addEventListener('mousemove', drag);
   } else if (event.button === 2) {
+    aiming = true;
     const iId = setInterval(aim, 1000 / 60);
-    canvas.addEventListener('mouseup', () => clearInterval(iId));
-    canvas.addEventListener('mouseleave', () => clearInterval(iId));
+    const stop = () => {
+      clearInterval(iId);
+      aiming = false;
+      canvas.removeEventListener('mouseup', stop);
+      canvas.removeEventListener('mouseleave', stop);
+    };
+    canvas.addEventListener('mouseup', stop);
+    canvas.addEventListener('mouseleave', stop);
   }
 }
 
@@ -66,7 +74,11 @@ function aim () {
 
 function mouseWheelEvent (event) {
   event.preventDefault();
-  if (event.deltaY !== 0) {
+  if (aiming) {
+    if (event.deltaY !== 0) {
+      player.adjustPower(1 - event.deltaY / 1000);
+    }
+  } else if (event.deltaY !== 0) {
     gfx.zoomCamera(1 + event.deltaY / 1000);
   }
 }
@@ -95,6 +107,16 @@ function initGame (data) {
   player.initPlayer(data.currentPlayer);
   gfx.init();
   gfx.setCamera(player.home.x, player.home.y);
+  gui.setupWorldSize(world.worldSize);
+  gui.onWorldSizeChange(size => {
+    const old = world.worldSize;
+    world.setWorldSize(size);
+    const factor = size / old;
+    player.rescaleWorld(factor);
+    gfx.updateWorldScale();
+    gfx.updatePlanets();
+    gfx.setCamera(player.home.x, player.home.y);
+  });
 
   canvas.addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
   window.addEventListener('keydown', keyDownEvent);

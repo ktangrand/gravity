@@ -13,10 +13,34 @@ for (const disp of ['power', 'angle', 'titanium', 'antimatter', 'metamaterials']
   hudElm.appendChild(readOutsElm);
 }
 
+const rangeElm = document.getElementById('worldSizeRange');
+const numberElm = document.getElementById('worldSizeNumber');
+let worldSizeChangeCb = null;
+
+function setupWorldSize (value) {
+  rangeElm.value = value;
+  numberElm.value = value;
+}
+
+rangeElm.addEventListener('input', () => { numberElm.value = rangeElm.value; });
+rangeElm.addEventListener('change', () => {
+  if (worldSizeChangeCb) worldSizeChangeCb(parseFloat(rangeElm.value));
+});
+numberElm.addEventListener('input', () => { rangeElm.value = numberElm.value; });
+numberElm.addEventListener('change', () => {
+  if (worldSizeChangeCb) worldSizeChangeCb(parseFloat(numberElm.value));
+});
+
+function onWorldSizeChange (cb) {
+  worldSizeChangeCb = cb;
+}
+
 function showValue (name, value) {
   displayElms[name].textContent = value;
 }
 
 export {
-  showValue
+  showValue,
+  onWorldSizeChange,
+  setupWorldSize
 };

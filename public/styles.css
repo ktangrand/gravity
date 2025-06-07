@@ -24,6 +24,10 @@ canvas {
     border: 3px solid yellow;
 }
 
+#HUD input {
+    pointer-events: auto;
+}
+
 #HUD table {
     width: 100%
 }
