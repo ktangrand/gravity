@@ -9,6 +9,8 @@ let zoom = 1000;
 let canvas;
 let ctx;
 
+const projectileSpeed = 0.007;
+
 function setCamera (x, y) {
   cameraX = x;
   cameraY = y;
@@ -62,8 +64,8 @@ function drawPlayer () {
 
   ctx.beginPath();
   ctx.moveTo(...w2c(x, y));
-  ctx.lineTo(...w2c(x + 0.01 * player.power * Math.cos(player.angle),
-    y + 0.01 * player.power * Math.sin(player.angle)));
+  ctx.lineTo(...w2c(x + projectileSpeed * player.power * Math.cos(player.angle),
+    y + projectileSpeed * player.power * Math.sin(player.angle)));
   ctx.strokeStyle = '#ffff00';
   ctx.lineWidth = 6;
   ctx.stroke();

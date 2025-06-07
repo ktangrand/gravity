@@ -113,12 +113,6 @@ function drawPlayer () {
   const group = new THREE.Group();
   const maxLen = 0.4;
   const len = Math.min(maxLen, 0.1 * player.power);
-  const baseGeom = new THREE.BoxGeometry(maxLen, 0.01, 0.01);
-  const baseMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const base = new THREE.Mesh(baseGeom, baseMat);
-  base.position.set(home.x + dir.x * maxLen / 2, home.y + dir.y * maxLen / 2, 0.06);
-  base.rotation.z = player.angle;
-  group.add(base);
   const color = new THREE.Color(0x00ff00).lerp(new THREE.Color(0xff0000), len / maxLen);
   const fillGeom = new THREE.BoxGeometry(len, 0.02, 0.02);
   const fillMat = new THREE.MeshBasicMaterial({ color });
