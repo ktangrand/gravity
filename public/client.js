@@ -15,6 +15,10 @@ const canvas = document.getElementById('gameCanvas');
 let mouse = { x: 0, y: 0 };
 let aiming = false;
 let lastFrameTime = 0;
+let gameLoopId = null;
+let inputInitialized = false;
+let aimIntervalId = null;
+let mouseMoveHandler;
 
 // Socket events:
 
@@ -46,9 +50,10 @@ function mouseDown (event) {
     canvas.addEventListener('mousemove', drag);
   } else if (event.button === 2) {
     aiming = true;
-    const iId = setInterval(aim, 1000 / 60);
+    aimIntervalId = setInterval(aim, 1000 / 60);
     const stop = () => {
-      clearInterval(iId);
+      clearInterval(aimIntervalId);
+      aimIntervalId = null;
       aiming = false;
       canvas.removeEventListener('mouseup', stop);
       canvas.removeEventListener('mouseleave', stop);
@@ -101,12 +106,22 @@ function gameLoop (timestamp) {
   world.updateProbes(deltaTime);
   gfx.render();
   updateHUD();
-  requestAnimationFrame(gameLoop);
+  gameLoopId = requestAnimationFrame(gameLoop);
 }
 
 // Init:
 
 function initGame (data) {
+  if (gameLoopId !== null) {
+    cancelAnimationFrame(gameLoopId);
+    gameLoopId = null;
+  }
+  if (aimIntervalId !== null) {
+    clearInterval(aimIntervalId);
+    aimIntervalId = null;
+    aiming = false;
+  }
+
   world.initWorld(data.world);
   player.initPlayer(data.currentPlayer);
   gfx.init();
@@ -116,12 +131,17 @@ function initGame (data) {
     socket.emit('generateWorld', params);
   });
 
-  canvas.addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
-  window.addEventListener('keydown', keyDownEvent);
-  canvas.addEventListener('mousedown', mouseDown);
-  canvas.addEventListener('wheel', mouseWheelEvent);
-  canvas.addEventListener('contextmenu', e => e.preventDefault());
-  window.addEventListener('resize', gfx.resize);
-  // Start game
-  requestAnimationFrame(gameLoop);
+  if (!inputInitialized) {
+    mouseMoveHandler = e => { mouse = { x: e.clientX, y: e.clientY }; };
+    canvas.addEventListener('mousemove', mouseMoveHandler);
+    window.addEventListener('keydown', keyDownEvent);
+    canvas.addEventListener('mousedown', mouseDown);
+    canvas.addEventListener('wheel', mouseWheelEvent);
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+    window.addEventListener('resize', gfx.resize);
+    inputInitialized = true;
+  }
+
+  lastFrameTime = 0;
+  gameLoopId = requestAnimationFrame(gameLoop);
 }
