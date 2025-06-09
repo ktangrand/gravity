@@ -16,6 +16,7 @@ let mouse = { x: 0, y: 0 };
 let aiming = false;
 let lastFrameTime = 0;
 let gameLoopId = null;
+let aimIntervalId = null;
 
 // Keep references to handlers so they can be removed when the world is
 // regenerated. Without this, multiple listeners and loops accumulate causing
@@ -55,9 +56,10 @@ function mouseDown (event) {
     canvas.addEventListener('mousemove', drag);
   } else if (event.button === 2) {
     aiming = true;
-    const iId = setInterval(aim, 1000 / 60);
+    aimIntervalId = setInterval(aim, 1000 / 60);
     const stop = () => {
-      clearInterval(iId);
+      clearInterval(aimIntervalId);
+      aimIntervalId = null;
       aiming = false;
       canvas.removeEventListener('mouseup', stop);
       canvas.removeEventListener('mouseleave', stop);
@@ -135,6 +137,12 @@ function cleanupGame () {
     wheelHandler = null;
   }
   canvas.removeEventListener('contextmenu', preventContext);
+  canvas.removeEventListener('mousemove', drag);
+  if (aimIntervalId !== null) {
+    clearInterval(aimIntervalId);
+    aimIntervalId = null;
+    aiming = false;
+  }
   if (keyDownHandler) {
     window.removeEventListener('keydown', keyDownHandler);
     keyDownHandler = null;

@@ -54,7 +54,7 @@ function calculateAim (home, angle, power) {
 
 function gravity (x, y) {
   function getf (xi, yi) {
-    if (xi >= fieldResolution || xi >= fieldResolution) {
+    if (xi < 0 || yi < 0 || xi >= fieldResolution || yi >= fieldResolution) {
       return [0, 0];
     }
     const idx = ((yi | 0) * fieldResolution + (xi | 0)) * 4;
