@@ -15,8 +15,14 @@ const fowResolution = 32;
 function initWorld (_world) {
   let field;
   ({ field, fieldResolution, planets, size: worldSize = 1, fieldMargin = 0, fieldSize = worldSize, G_CONSTANT: gConstant = 0.0000001 } = _world);
-  fieldX = new DataView(field, 0, field.byteLength / 2);
-  fieldY = new DataView(field, field.byteLength / 2, field.byteLength / 2);
+  let buffer = field;
+  let offset = 0;
+  if (ArrayBuffer.isView(field)) {
+    buffer = field.buffer;
+    offset = field.byteOffset;
+  }
+  fieldX = new DataView(buffer, offset, field.byteLength / 2);
+  fieldY = new DataView(buffer, offset + field.byteLength / 2, field.byteLength / 2);
   fow = new ArrayBuffer(fowResolution * fowResolution * 1);
   fowView = new Uint8Array(fow);
   probes.length = 0;
