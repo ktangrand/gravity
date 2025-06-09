@@ -16,15 +16,9 @@ let mouse = { x: 0, y: 0 };
 let aiming = false;
 let lastFrameTime = 0;
 let gameLoopId = null;
+let inputInitialized = false;
 let aimIntervalId = null;
-
-// Keep references to handlers so they can be removed when the world is
-// regenerated. Without this, multiple listeners and loops accumulate causing
-// projectiles to move too fast.
-let mouseMoveHandler = null;
-let keyDownHandler = null;
-let mouseDownHandler = null;
-let wheelHandler = null;
+let mouseMoveHandler;
 
 // Socket events:
 
@@ -95,10 +89,6 @@ function mouseWheelEvent (event) {
   }
 }
 
-function preventContext (e) {
-  e.preventDefault();
-}
-
 // Gameloop:
 
 function updateHUD () {
@@ -119,67 +109,39 @@ function gameLoop (timestamp) {
   gameLoopId = requestAnimationFrame(gameLoop);
 }
 
-function cleanupGame () {
+// Init:
+
+function initGame (data) {
   if (gameLoopId !== null) {
     cancelAnimationFrame(gameLoopId);
     gameLoopId = null;
   }
-  if (mouseMoveHandler) {
-    canvas.removeEventListener('mousemove', mouseMoveHandler);
-    mouseMoveHandler = null;
-  }
-  if (mouseDownHandler) {
-    canvas.removeEventListener('mousedown', mouseDownHandler);
-    mouseDownHandler = null;
-  }
-  if (wheelHandler) {
-    canvas.removeEventListener('wheel', wheelHandler);
-    wheelHandler = null;
-  }
-  canvas.removeEventListener('contextmenu', preventContext);
-  canvas.removeEventListener('mousemove', drag);
   if (aimIntervalId !== null) {
     clearInterval(aimIntervalId);
     aimIntervalId = null;
     aiming = false;
   }
-  if (keyDownHandler) {
-    window.removeEventListener('keydown', keyDownHandler);
-    keyDownHandler = null;
-  }
-  window.removeEventListener('resize', gfx.resize);
-}
 
-// Init:
-
-function initGame (data) {
-  cleanupGame();
-  lastFrameTime = 0;
   world.initWorld(data.world);
   player.initPlayer(data.currentPlayer);
   gfx.init();
   gfx.setCamera(player.home.x, player.home.y);
-  gui.setupWorldSize(
-    world.worldSize,
-    world.planets.length,
-    data.world.G_CONSTANT,
-    data.world.planetRadius,
-    data.world.planetMass
-  );
+  gui.setupWorldSize(world.worldSize, world.planets.length, data.world.G_CONSTANT);
   gui.onGenerateWorld(params => {
     socket.emit('generateWorld', params);
   });
 
-  mouseMoveHandler = e => { mouse = { x: e.clientX, y: e.clientY }; };
-  canvas.addEventListener('mousemove', mouseMoveHandler);
-  keyDownHandler = keyDownEvent;
-  window.addEventListener('keydown', keyDownHandler);
-  mouseDownHandler = mouseDown;
-  canvas.addEventListener('mousedown', mouseDownHandler);
-  wheelHandler = mouseWheelEvent;
-  canvas.addEventListener('wheel', wheelHandler);
-  canvas.addEventListener('contextmenu', preventContext);
-  window.addEventListener('resize', gfx.resize);
-  // Start game
+  if (!inputInitialized) {
+    mouseMoveHandler = e => { mouse = { x: e.clientX, y: e.clientY }; };
+    canvas.addEventListener('mousemove', mouseMoveHandler);
+    window.addEventListener('keydown', keyDownEvent);
+    canvas.addEventListener('mousedown', mouseDown);
+    canvas.addEventListener('wheel', mouseWheelEvent);
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+    window.addEventListener('resize', gfx.resize);
+    inputInitialized = true;
+  }
+
+  lastFrameTime = 0;
   gameLoopId = requestAnimationFrame(gameLoop);
 }

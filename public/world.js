@@ -2,8 +2,6 @@ let fieldResolution;
 let fieldX, fieldY;
 let planets;
 let worldSize = 1;
-let fieldMargin = 0;
-let fieldSize = 1;
 let gConstant = 0.0000001;
 const probes = [];
 const projectileSpeed = 0.007;
@@ -14,15 +12,9 @@ const fowResolution = 32;
 
 function initWorld (_world) {
   let field;
-  ({ field, fieldResolution, planets, size: worldSize = 1, fieldMargin = 0, fieldSize = worldSize, G_CONSTANT: gConstant = 0.0000001 } = _world);
-  let buffer = field;
-  let offset = 0;
-  if (ArrayBuffer.isView(field)) {
-    buffer = field.buffer;
-    offset = field.byteOffset;
-  }
-  fieldX = new DataView(buffer, offset, field.byteLength / 2);
-  fieldY = new DataView(buffer, offset + field.byteLength / 2, field.byteLength / 2);
+  ({ field, fieldResolution, planets, size: worldSize = 1, G_CONSTANT: gConstant = 0.0000001 } = _world);
+  fieldX = new DataView(field, 0, field.byteLength / 2);
+  fieldY = new DataView(field, field.byteLength / 2, field.byteLength / 2);
   fow = new ArrayBuffer(fowResolution * fowResolution * 1);
   fowView = new Uint8Array(fow);
   probes.length = 0;
@@ -32,14 +24,13 @@ function calculateAim (home, angle, power) {
   const aimC = [[home.x, home.y]];
   let ax = home.x + 1.1 * home.radius * Math.cos(angle);
   let ay = home.y + 1.1 * home.radius * Math.sin(angle);
-  const velocityScale = Math.sqrt(power);
-  let vx = projectileSpeed * Math.cos(angle) * velocityScale;
-  let vy = projectileSpeed * Math.sin(angle) * velocityScale;
+  let vx = projectileSpeed * Math.cos(angle) * power;
+  let vy = projectileSpeed * Math.sin(angle) * power;
   for (let i = 0; i < 1000; i++) {
     aimC.push([ax, ay]);
     ax += vx;
     ay += vy;
-    if (ax < -fieldMargin || ax > worldSize + fieldMargin || ay < -fieldMargin || ay > worldSize + fieldMargin) {
+    if (ax < 0 || ax > worldSize || ay < 0 || ay > worldSize) {
       break;
     }
     const [gx, gy] = gravity(ax, ay);
@@ -64,8 +55,8 @@ function gravity (x, y) {
     ];
   }
 
-  const xi = (x + fieldMargin) / fieldSize * (fieldResolution - 1);
-  const yi = (y + fieldMargin) / fieldSize * (fieldResolution - 1);
+  const xi = x / worldSize * (fieldResolution - 1);
+  const yi = y / worldSize * (fieldResolution - 1);
   const [gx00, gy00] = getf(xi, yi);
   const [gx10, gy10] = getf(xi + 1, yi);
   const [gx01, gy01] = getf(xi, yi + 1);
@@ -139,11 +130,11 @@ function recalcField () {
   const buffer = new ArrayBuffer(fieldResolution ** 2 * 4 * 2);
   const fx = new DataView(buffer, 0, buffer.byteLength / 2);
   const fy = new DataView(buffer, buffer.byteLength / 2, buffer.byteLength / 2);
-  const worldStep = fieldSize / (fieldResolution - 1);
+  const worldStep = worldSize / (fieldResolution - 1);
   for (let y = 0; y < fieldResolution; y++) {
     const rowOfs = y * fieldResolution;
     for (let x = 0; x < fieldResolution; x++) {
-      const [gx, gy] = calcGravityAt(x * worldStep - fieldMargin, y * worldStep - fieldMargin);
+      const [gx, gy] = calcGravityAt(x * worldStep, y * worldStep);
       const idx = (rowOfs + x) * 4;
       fx.setFloat32(idx, gx);
       fy.setFloat32(idx, gy);
@@ -156,8 +147,6 @@ function recalcField () {
 function setWorldSize (size) {
   const factor = size / worldSize;
   worldSize = size;
-  fieldMargin = worldSize * 0.25;
-  fieldSize = worldSize + fieldMargin * 2;
   for (const p of planets) {
     p.x *= factor;
     p.y *= factor;

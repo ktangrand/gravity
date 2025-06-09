@@ -17,19 +17,15 @@ const rangeElm = document.getElementById('worldSizeRange');
 const numberElm = document.getElementById('worldSizeNumber');
 const planetCountElm = document.getElementById('planetCountNumber');
 const gravityScaleElm = document.getElementById('gravityScale');
-const planetRadiusElm = document.getElementById('planetRadius');
-const planetMassElm = document.getElementById('planetMass');
 const applyElm = document.getElementById('applyWorldSize');
 let worldSizeChangeCb = null;
 let worldGenerateCb = null;
 
-function setupWorldSize (value, planetCount, gravityScale, planetRadius, planetMass) {
+function setupWorldSize (value, planetCount, gravityScale) {
   rangeElm.value = value;
   numberElm.value = value;
   if (planetCount !== undefined) planetCountElm.value = planetCount;
   if (gravityScale !== undefined) gravityScaleElm.value = gravityScale;
-  if (planetRadius !== undefined) planetRadiusElm.value = planetRadius;
-  if (planetMass !== undefined) planetMassElm.value = planetMass;
 }
 
 rangeElm.addEventListener('input', () => { numberElm.value = rangeElm.value; });
@@ -46,9 +42,7 @@ applyElm.addEventListener('click', () => {
     worldGenerateCb({
       size: parseFloat(rangeElm.value),
       planetCount: parseInt(planetCountElm.value),
-      gravityScale: parseFloat(gravityScaleElm.value),
-      planetRadius: parseFloat(planetRadiusElm.value),
-      planetMass: parseFloat(planetMassElm.value)
+      gravityScale: parseFloat(gravityScaleElm.value)
     });
   }
 });

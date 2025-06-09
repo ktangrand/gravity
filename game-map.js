@@ -46,24 +46,17 @@ function generateResources () {
 
 function createWorld (size = 1, options = {}) {
   const worldSize = size;
-  const fieldMargin = options.fieldMargin || worldSize * 0.25;
-  const fieldSize = worldSize + fieldMargin * 2;
   const planets = [];
   // Random planets
   const planetCount = options.planetCount || getRandomInt(80, 150);
   const gravityScale = options.gravityScale || 1;
-  const planetRadius = options.planetRadius;
-  const planetMass = options.planetMass;
   for (let nr = 1; nr <= planetCount; nr++) {
-    const base = generateResources();
-    if (planetRadius !== undefined) base.radius = planetRadius;
-    if (planetMass !== undefined) base.mass = planetMass;
     planets.push({
       x: Math.random() * worldSize,
       y: Math.random() * worldSize,
       populated: null,
       nr,
-      ...base
+      ...generateResources()
     });
   }
 
@@ -72,11 +65,7 @@ function createWorld (size = 1, options = {}) {
     fieldResolution,
     G_CONSTANT: 0.0000001 * gravityScale,
     size: worldSize,
-    fieldMargin,
-    fieldSize,
-    planets,
-    planetRadius,
-    planetMass
+    planets
   };
 
   // Calculate the field grid
@@ -85,22 +74,18 @@ function createWorld (size = 1, options = {}) {
   const buffer = new ArrayBuffer(fieldResolution ** 2 * 4 * 2);
   const fxF32 = new DataView(buffer);
   const fyF32 = new DataView(buffer, buffer.byteLength / 2);
-  const worldStep = fieldSize / (fieldResolution - 1);
+  const worldStep = worldSize / (fieldResolution - 1);
   for (let y = 0; y < fieldResolution; y++) {
     const rowOfs = y * fieldResolution;
     for (let x = 0; x < fieldResolution; x++) {
-      const [gx, gy] = calcGravity(world,
-        x * worldStep - fieldMargin,
-        y * worldStep - fieldMargin);
+      const [gx, gy] = calcGravity(world, x * worldStep, y * worldStep);
       const bOffset = (rowOfs + x) * 4;
       fxF32.setFloat32(bOffset, gx);
       fyF32.setFloat32(bOffset, gy);
     }
   }
   console.log(`end field calc after ${Date.now() - t} ms`);
-  // Store the raw ArrayBuffer so it transfers correctly over Socket.IO.
-  // The client will create DataViews for reading the X and Y components.
-  world.field = buffer;
+  world.field = fxF32;
 
   return world;
 }
