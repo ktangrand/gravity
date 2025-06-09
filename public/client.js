@@ -111,7 +111,13 @@ function initGame (data) {
   player.initPlayer(data.currentPlayer);
   gfx.init();
   gfx.setCamera(player.home.x, player.home.y);
-  gui.setupWorldSize(world.worldSize, world.planets.length, data.world.G_CONSTANT);
+  gui.setupWorldSize(
+    world.worldSize,
+    world.planets.length,
+    data.world.G_CONSTANT,
+    data.world.planetRadius,
+    data.world.planetMass
+  );
   gui.onGenerateWorld(params => {
     socket.emit('generateWorld', params);
   });
