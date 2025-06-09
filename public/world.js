@@ -26,8 +26,9 @@ function calculateAim (home, angle, power) {
   const aimC = [[home.x, home.y]];
   let ax = home.x + 1.1 * home.radius * Math.cos(angle);
   let ay = home.y + 1.1 * home.radius * Math.sin(angle);
-  let vx = projectileSpeed * Math.cos(angle) * power;
-  let vy = projectileSpeed * Math.sin(angle) * power;
+  const velocityScale = Math.sqrt(power);
+  let vx = projectileSpeed * Math.cos(angle) * velocityScale;
+  let vy = projectileSpeed * Math.sin(angle) * velocityScale;
   for (let i = 0; i < 1000; i++) {
     aimC.push([ax, ay]);
     ax += vx;
