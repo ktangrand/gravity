@@ -98,7 +98,9 @@ function createWorld (size = 1, options = {}) {
     }
   }
   console.log(`end field calc after ${Date.now() - t} ms`);
-  world.field = fxF32;
+  // Store the raw ArrayBuffer so it transfers correctly over Socket.IO.
+  // The client will create DataViews for reading the X and Y components.
+  world.field = buffer;
 
   return world;
 }
