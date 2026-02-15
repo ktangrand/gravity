@@ -70,7 +70,6 @@ function createWorld (size = 1, options = {}) {
 
   // Calculate the field grid
   const t = Date.now();
-  console.log('start field calc');
   const buffer = new ArrayBuffer(fieldResolution ** 2 * 4 * 2);
   const fxF32 = new DataView(buffer);
   const fyF32 = new DataView(buffer, buffer.byteLength / 2);
@@ -84,7 +83,6 @@ function createWorld (size = 1, options = {}) {
       fyF32.setFloat32(bOffset, gy);
     }
   }
-  console.log(`end field calc after ${Date.now() - t} ms`);
   world.field = fxF32;
 
   return world;

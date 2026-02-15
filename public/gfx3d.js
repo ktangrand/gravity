@@ -8,6 +8,27 @@ let zoom = 1;
 let canvas;
 let scene;
 let planetMeshes = [];
+const planetFlashes = []; // { mesh, startTime } for active flash effects
+
+// Pre-allocated objects for per-frame rendering
+const PROBE_POOL_SIZE = 100;
+const AIM_MAX_POINTS = 1001;
+let probeMeshes = [];
+let probeGeom;
+let probeMat;
+let aimLine;
+let aimGeometry;
+let aimPositions;
+let arrowFill;
+let arrowHead;
+let arrowGroup;
+let arrowFillMat;
+let arrowHeadMat;
+
+// Reusable color objects to avoid allocations
+const colorGreen = new THREE.Color(0x00ff00);
+const colorRed = new THREE.Color(0xff0000);
+const tmpColor = new THREE.Color();
 
 
 function setCamera (x, y) {
@@ -25,7 +46,6 @@ function panCamera (dx, dy) {
 function zoomCamera (delta) {
   zoom *= delta;
   zoom = Math.min(Math.max(zoom, 0.5), 2);
-  //  camera.position.z = zoom;
   camera.position.z = zoom;
 }
 
@@ -40,9 +60,6 @@ function updateWorldScale () {
 
 
 function w2c (x, y) { // Convert from world to canvas coordinates
-
-  // Project the given world point using the camera and convert it from
-  // normalized device coordinates to pixel space on the canvas.
   const vector = new THREE.Vector3(x, y, 0);
   vector.project(camera);
 
@@ -66,74 +83,117 @@ function c2w (x, y) { // Convert from canvas to world coordinates (z=0 plane)
   return [pos.x, pos.y];
 }
 
-let probeGroup;
+
+function initProbePool () {
+  probeGeom = new THREE.SphereGeometry(0.01, 8, 8);
+  probeMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+  for (let i = 0; i < PROBE_POOL_SIZE; i++) {
+    const mesh = new THREE.Mesh(probeGeom, probeMat);
+    mesh.visible = false;
+    scene.add(mesh);
+    probeMeshes.push(mesh);
+  }
+}
 
 function drawProjectiles () {
-  // The old implementation rendered a stream line between the firing planet
-  // and the hit planet. This visualisation has been removed.
-
-  if (probeGroup) {
-    scene.remove(probeGroup);
-  }
-  probeGroup = new THREE.Group();
-  const geom = new THREE.SphereGeometry(0.01, 8, 8);
-  const mtl = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+  let idx = 0;
   for (const probe of world.probes) {
-    if (!probe.visible) continue;
-    const mesh = new THREE.Mesh(geom, mtl);
+    if (!probe.visible || idx >= PROBE_POOL_SIZE) continue;
+    const mesh = probeMeshes[idx++];
+    mesh.visible = true;
     mesh.position.set(probe.x, probe.y, 0.05);
-    probeGroup.add(mesh);
   }
-  scene.add(probeGroup);
+  // Hide unused pool meshes
+  for (let i = idx; i < PROBE_POOL_SIZE; i++) {
+    probeMeshes[i].visible = false;
+  }
 }
 
 
-let aimLine;
-
-function drawAim () {
-  if (aimLine) {
-    scene.remove(aimLine);
-  }
-  const points = player.aimC.map(([ax, ay]) => new THREE.Vector3(ax, ay, 0));
-  const geometry = new THREE.BufferGeometry().setFromPoints(points);
-  const material = new THREE.LineBasicMaterial({ color: 0x103010 });
-  aimLine = new THREE.Line(geometry, material);
+function initAimLine () {
+  aimPositions = new Float32Array(AIM_MAX_POINTS * 3);
+  aimGeometry = new THREE.BufferGeometry();
+  aimGeometry.setAttribute('position', new THREE.BufferAttribute(aimPositions, 3));
+  aimGeometry.setDrawRange(0, 0);
+  const aimMaterial = new THREE.LineBasicMaterial({ color: 0x103010 });
+  aimLine = new THREE.Line(aimGeometry, aimMaterial);
   scene.add(aimLine);
 }
 
-
-let playerArrow;
-
-function drawPlayer () {
-  if (playerArrow) {
-    scene.remove(playerArrow);
+function drawAim () {
+  const points = player.aimC;
+  const len = Math.min(points.length, AIM_MAX_POINTS);
+  for (let i = 0; i < len; i++) {
+    aimPositions[i * 3] = points[i][0];
+    aimPositions[i * 3 + 1] = points[i][1];
+    aimPositions[i * 3 + 2] = 0;
   }
-  const home = player.home;
-  const dir = new THREE.Vector3(Math.cos(player.angle), Math.sin(player.angle), 0).normalize();
-  const group = new THREE.Group();
-  const maxLen = 0.4;
-  const len = Math.min(maxLen, 0.1 * player.power);
-  const color = new THREE.Color(0x00ff00).lerp(new THREE.Color(0xff0000), len / maxLen);
-  const fillGeom = new THREE.BoxGeometry(len, 0.02, 0.02);
-  const fillMat = new THREE.MeshBasicMaterial({ color });
-  const fill = new THREE.Mesh(fillGeom, fillMat);
-  fill.position.set(home.x + dir.x * len / 2, home.y + dir.y * len / 2, 0.07);
-  fill.rotation.z = player.angle;
-  group.add(fill);
-  const headGeom = new THREE.ConeGeometry(0.03, 0.05, 8);
-  const head = new THREE.Mesh(headGeom, fillMat);
-  head.position.set(home.x + dir.x * (len + 0.025), home.y + dir.y * (len + 0.025), 0.07);
-  head.rotation.z = player.angle - Math.PI / 2;
-  group.add(head);
-  playerArrow = group;
-  scene.add(playerArrow);
+  aimGeometry.attributes.position.needsUpdate = true;
+  aimGeometry.setDrawRange(0, len);
 }
 
+
+function initPlayerArrow () {
+  arrowGroup = new THREE.Group();
+  const fillGeom = new THREE.BoxGeometry(1, 0.02, 0.02);
+  arrowFillMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+  arrowFill = new THREE.Mesh(fillGeom, arrowFillMat);
+  const headGeom = new THREE.ConeGeometry(0.03, 0.05, 8);
+  arrowHeadMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+  arrowHead = new THREE.Mesh(headGeom, arrowHeadMat);
+  arrowGroup.add(arrowFill, arrowHead);
+  scene.add(arrowGroup);
+}
+
+function drawPlayer () {
+  const home = player.home;
+  const angle = player.angle;
+  const cosA = Math.cos(angle);
+  const sinA = Math.sin(angle);
+  const maxLen = 0.4;
+  const len = Math.min(maxLen, 0.1 * player.power);
+  tmpColor.copy(colorGreen).lerp(colorRed, len / maxLen);
+  arrowFillMat.color.copy(tmpColor);
+  arrowHeadMat.color.copy(tmpColor);
+
+  arrowFill.scale.x = len;
+  arrowFill.position.set(home.x + cosA * len / 2, home.y + sinA * len / 2, 0.07);
+  arrowFill.rotation.z = angle;
+
+  arrowHead.position.set(home.x + cosA * (len + 0.025), home.y + sinA * (len + 0.025), 0.07);
+  arrowHead.rotation.z = angle - Math.PI / 2;
+}
+
+
+function flashPlanet (planetNr) {
+  const idx = world.planets.findIndex(p => p.nr === planetNr);
+  if (idx === -1 || !planetMeshes[idx]) return;
+  const mesh = planetMeshes[idx];
+  mesh.material.emissive.set(0xffffff);
+  planetFlashes.push({ mesh, startTime: performance.now() });
+}
+
+function updateFlashes () {
+  const now = performance.now();
+  for (let i = planetFlashes.length - 1; i >= 0; i--) {
+    const flash = planetFlashes[i];
+    const elapsed = now - flash.startTime;
+    const duration = 400; // ms
+    if (elapsed >= duration) {
+      flash.mesh.material.emissive.set(0x000000);
+      planetFlashes.splice(i, 1);
+    } else {
+      const intensity = 1 - elapsed / duration;
+      flash.mesh.material.emissive.setScalar(intensity);
+    }
+  }
+}
 
 function render () {
   drawAim();
   drawPlayer();
   drawProjectiles();
+  updateFlashes();
   renderer.render(scene, camera);
 }
 
@@ -147,7 +207,7 @@ function buildScene () {
     new THREE.MeshLambertMaterial({ color: 0xffc0cb, flatShading: true })
   ];
   for (const p of world.planets) {
-    const material = materials[p.color];
+    const material = materials[p.color].clone();
     const planet = new THREE.Mesh(geometry, material);
     scene.add(planet);
     planetMeshes.push(planet);
@@ -204,7 +264,10 @@ function init () {
   scene.add(ambientLight);
   scene.add(directionalLight);
   buildScene();
+  initProbePool();
+  initAimLine();
+  initPlayerArrow();
   resize();
 }
 
-export { init, setCamera, panCamera, zoomCamera, render, w2c, c2w, resize, updateWorldScale, updatePlanets };
+export { init, setCamera, panCamera, zoomCamera, render, flashPlanet, w2c, c2w, resize, updateWorldScale, updatePlanets };

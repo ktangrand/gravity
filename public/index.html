@@ -4,22 +4,79 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gravity</title>
+  <meta name="description" content="RKV - A multiplayer space artillery game with gravitational physics">
+  <meta property="og:title" content="RKV - Gravity Game">
+  <meta property="og:description" content="Fire probes through gravitational fields in this multiplayer space game">
+  <meta property="og:type" content="website">
+  <title>RKV — Gravitational Artillery</title>
+  <link rel="icon" href="favicon.ico">
   <link rel="stylesheet" href="styles.css">
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.153.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.153.0/examples/jsm/"
-    }
-  }
-  </script>
 </head>
 
 <body>
-  <canvas id="gameCanvas" width="800" height="800"></canvas>
-  <div id="HUD">
-    <div id="worldSizeControl">
+  <noscript><p style="color:white;text-align:center;margin-top:40vh">JavaScript is required to play RKV.</p></noscript>
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Title Screen -->
+  <div id="title-screen">
+    <h1>RKV</h1>
+    <p class="subtitle">Gravitational Artillery</p>
+    <button id="play-btn">PLAY</button>
+  </div>
+
+  <!-- Loading Screen -->
+  <div id="loading-screen" style="display:none">
+    <p>Generating Universe...</p>
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Control Instructions -->
+  <div id="instructions" style="display:none">
+    <div class="instructions-content">
+      <h2>Controls</h2>
+      <table>
+        <tr><td>Left-click drag</td><td>Pan camera</td></tr>
+        <tr><td>Right-click hold</td><td>Aim direction</td></tr>
+        <tr><td>Scroll (while aiming)</td><td>Adjust power</td></tr>
+        <tr><td>Scroll</td><td>Zoom</td></tr>
+        <tr><td>W / S / Arrow keys</td><td>Adjust power</td></tr>
+        <tr><td>F</td><td>Fire probe</td></tr>
+      </table>
+      <p class="hint">Hit unpopulated planets to mine resources. Hit enemy planets to attack!</p>
+      <button id="instructions-dismiss">GOT IT</button>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="HUD" style="display:none">
+    <div id="resource-panel">
+      <div class="resource-row">
+        <span class="resource-label">Power</span>
+        <span class="resource-value" id="val-power">1.00</span>
+      </div>
+      <div class="resource-row">
+        <span class="resource-label">Angle</span>
+        <span class="resource-value" id="val-angle">0</span>
+      </div>
+      <hr>
+      <div class="resource-row">
+        <span class="resource-label titanium">Titanium</span>
+        <span class="resource-value" id="val-titanium">0</span>
+      </div>
+      <div class="resource-row">
+        <span class="resource-label antimatter">Antimatter</span>
+        <span class="resource-value" id="val-antimatter">0</span>
+      </div>
+      <div class="resource-row">
+        <span class="resource-label metamaterials">Metamaterials</span>
+        <span class="resource-value" id="val-metamaterials">0</span>
+      </div>
+    </div>
+    <div id="hud-buttons">
+      <button id="mute-btn">Mute</button>
+      <button id="toggle-settings-btn">Settings</button>
+    </div>
+    <div id="worldSizeControl" style="display:none">
       <label for="worldSizeRange">World Size</label>
       <input id="worldSizeRange" type="range" min="0.5" max="5" step="0.1" value="1">
       <input id="worldSizeNumber" type="number" min="0.5" max="5" step="0.1" value="1">
@@ -30,6 +87,10 @@
       <button id="applyWorldSize">Generate</button>
     </div>
   </div>
+
+  <!-- Mobile Fire Button -->
+  <button id="fire-btn" style="display:none">FIRE</button>
+
   <script src="/socket.io/socket.io.js"></script>
   <script type="module" src="client.js"></script>
 </body>
