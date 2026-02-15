@@ -30,20 +30,50 @@
     <div class="spinner"></div>
   </div>
 
-  <!-- Control Instructions -->
-  <div id="instructions" style="display:none">
-    <div class="instructions-content">
+  <!-- Help / Controls / Mechanics overlay -->
+  <div id="help-screen" style="display:none">
+    <div class="help-content">
       <h2>Controls</h2>
       <table>
         <tr><td>Left-click drag</td><td>Pan camera</td></tr>
-        <tr><td>Right-click hold</td><td>Aim direction</td></tr>
-        <tr><td>Scroll (while aiming)</td><td>Adjust power</td></tr>
-        <tr><td>Scroll</td><td>Zoom</td></tr>
-        <tr><td>W / S / Arrow keys</td><td>Adjust power</td></tr>
+        <tr><td>Right-click hold</td><td>Aim direction (move mouse to set angle)</td></tr>
+        <tr><td>Scroll wheel</td><td>Zoom in / out</td></tr>
+        <tr><td>Scroll (while aiming)</td><td>Adjust launch power</td></tr>
+        <tr><td>W / S / Arrow Up / Down</td><td>Fine-tune power</td></tr>
         <tr><td>F</td><td>Fire probe</td></tr>
       </table>
-      <p class="hint">Hit unpopulated planets to mine resources. Hit enemy planets to attack!</p>
-      <button id="instructions-dismiss">GOT IT</button>
+
+      <h3>Touch Controls</h3>
+      <table>
+        <tr><td>Drag</td><td>Pan camera</td></tr>
+        <tr><td>Long press + drag</td><td>Aim direction</td></tr>
+        <tr><td>Pinch</td><td>Zoom</td></tr>
+        <tr><td>FIRE button</td><td>Launch probe</td></tr>
+      </table>
+
+      <h2>How to Play</h2>
+      <p class="help-text">You control a planet in a gravity field. Fire <strong>probes</strong> at other planets to mine resources or attack enemies.</p>
+
+      <h3>Mining</h3>
+      <p class="help-text">Hit an <strong>unoccupied</strong> planet to mine 10% of its resources. Your probe is consumed (costs 50 titanium).</p>
+
+      <h3>Attacking</h3>
+      <p class="help-text">Hit an <strong>enemy</strong> planet to deal damage and steal resources. Deplete an enemy's resources to eliminate them.</p>
+
+      <h3>Winning</h3>
+      <p class="help-text">Accumulate <strong>10,000 total resources</strong> to win. Or be the last player standing.</p>
+
+      <h3>Planet Types</h3>
+      <table class="planet-table">
+        <tr><td class="planet-dot" style="color:#2ecc71">&#9679;</td><td>Terrestrial</td><td>Habitable, titanium-rich</td></tr>
+        <tr><td class="planet-dot" style="color:#5dade2">&#9679;</td><td>Ice Giant</td><td>Metamaterials-rich</td></tr>
+        <tr><td class="planet-dot" style="color:#aab7b8">&#9679;</td><td>Dense Metal</td><td>Titanium + antimatter</td></tr>
+        <tr><td class="planet-dot" style="color:#e88dd6">&#9679;</td><td>Nebula</td><td>Antimatter + metamaterials</td></tr>
+        <tr><td class="planet-dot" style="color:#f5c842">&#9679;</td><td>Star</td><td>Massive, all resources</td></tr>
+        <tr><td class="planet-dot" style="color:#e67e22">&#9679;</td><td>Gas Giant</td><td>Large, resource-rich</td></tr>
+      </table>
+
+      <button id="help-dismiss">GOT IT</button>
     </div>
   </div>
 
@@ -74,6 +104,7 @@
     </div>
     <div id="hud-buttons">
       <button id="mute-btn">Mute</button>
+      <button id="help-btn">Help</button>
       <button id="toggle-settings-btn">Settings</button>
     </div>
     <div id="worldSizeControl" style="display:none">

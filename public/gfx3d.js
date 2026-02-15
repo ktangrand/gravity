@@ -34,18 +34,22 @@ const colorGreen = new THREE.Color(0x00ff00);
 const colorRed = new THREE.Color(0xff0000);
 const tmpColor = new THREE.Color();
 
-// Planet palette (richer than old flat colors)
+// Planet palette (index matches server-side color type)
 const PLANET_COLORS = [
-  0x2ecc71, // Terrestrial – emerald green
-  0x5dade2, // Ice Giant – sky blue
-  0xaab7b8, // Dense Metal – silver
-  0xe88dd6, // Nebula – vibrant pink
+  0x2ecc71, // 0 Terrestrial – emerald green
+  0x5dade2, // 1 Ice Giant – sky blue
+  0xaab7b8, // 2 Dense Metal – silver
+  0xe88dd6, // 3 Nebula – vibrant pink
+  0xf5c842, // 4 Star – gold
+  0xe67e22, // 5 Gas Giant – orange
 ];
 const PLANET_EMISSIVE = [
-  0x0a2e14,
-  0x0a1a2e,
-  0x151515,
-  0x2e0a20,
+  0x0a2e14, // Terrestrial
+  0x0a1a2e, // Ice Giant
+  0x151515, // Dense Metal
+  0x2e0a20, // Nebula
+  0x4a3a08, // Star – warm glow
+  0x3a1f08, // Gas Giant – warm glow
 ];
 
 
@@ -58,7 +62,8 @@ function setCamera (x, y) {
 
 function panCamera (dx, dy) {
   // Zoom-aware: when zoomed in each pixel maps to less world space
-  const scale = viewSize / (canvas.height * zoom);
+  // Use clientHeight (CSS pixels) not canvas.height (render buffer, affected by DPR)
+  const scale = viewSize / (canvas.clientHeight * zoom);
   camera.position.x -= dx * scale;
   camera.position.y += dy * scale;
 }
@@ -90,7 +95,7 @@ function updateWorldScale () {
 }
 
 function applyFrustum (ws) {
-  const aspect = canvas.width / canvas.height;
+  const aspect = canvas.clientWidth / canvas.clientHeight;
   camera.left = -ws / 2 * aspect;
   camera.right = ws / 2 * aspect;
   camera.top = ws / 2;
@@ -100,16 +105,22 @@ function applyFrustum (ws) {
 function w2c (x, y) {
   const v = new THREE.Vector3(x, y, 0);
   v.project(camera);
+  // Use CSS dimensions (clientWidth/Height) – not render buffer (canvas.width/height)
+  const cw = canvas.clientWidth;
+  const ch = canvas.clientHeight;
   return [
-    (v.x + 1) / 2 * canvas.width,
-    (-v.y + 1) / 2 * canvas.height,
+    (v.x + 1) / 2 * cw,
+    (-v.y + 1) / 2 * ch,
   ];
 }
 
 function c2w (x, y) {
+  // Input x, y are CSS pixels (clientX/clientY) – use CSS dimensions to normalise
+  const cw = canvas.clientWidth;
+  const ch = canvas.clientHeight;
   const v = new THREE.Vector3(
-    (x / canvas.width) * 2 - 1,
-    -(y / canvas.height) * 2 + 1,
+    (x / cw) * 2 - 1,
+    -(y / ch) * 2 + 1,
     0,
   );
   v.unproject(camera);
@@ -267,7 +278,7 @@ function initAimLine () {
     dashSize: 1,
     gapSize: 0.5,
   });
-  mat.resolution.set(canvas.width, canvas.height);
+  mat.resolution.set(window.innerWidth, window.innerHeight);
 
   aimLine = new Line2(aimGeometry, mat);
   aimLine.visible = false;
@@ -413,9 +424,7 @@ function resize () {
   if (!canvas || !renderer || !camera) return;
   const w = window.innerWidth;
   const h = window.innerHeight;
-  canvas.width = w;
-  canvas.height = h;
-  renderer.setSize(w, h);
+  renderer.setSize(w, h); // sets CSS + render-buffer sizes (respects pixelRatio)
   applyFrustum(viewSize);
   camera.updateProjectionMatrix();
   if (aimLine) aimLine.material.resolution.set(w, h);
@@ -447,15 +456,13 @@ function init () {
   const w = window.innerWidth;
   const h = window.innerHeight;
   canvas = document.getElementById('gameCanvas');
-  canvas.width = w;
-  canvas.height = h;
 
   // Reuse WebGL renderer across re-inits (avoids context limit)
   if (!renderer) {
     renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   }
-  renderer.setSize(w, h);
+  renderer.setSize(w, h); // handles both CSS and buffer dimensions
 
   // Tear down previous scene if re-initialising
   if (scene) clearScene();
