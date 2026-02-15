@@ -22,6 +22,15 @@ const PROBE_POOL_SIZE = 100;
 let probeMeshes = [];
 let probeGeom;
 
+// Probe trails
+const TRAIL_MAX = 100;
+let trailLines = [];
+let trailMat;
+
+// Impact effects
+const impacts = [];
+const IMPACT_DURATION = 1200; // ms
+
 // Aim line (thick, dashed)
 let aimLine, aimGeometry;
 const AIM_MAX_POINTS = 1001;
@@ -73,12 +82,10 @@ function setCamera (x, y) {
 }
 
 function panCamera (dx, dy) {
-  // Scale pixel movement to world units based on camera distance
   const vFov = camera.fov * Math.PI / 180;
   const worldH = 2 * camDist * Math.tan(vFov / 2);
   const scale = worldH / canvas.clientHeight;
 
-  // Camera right & up vectors projected onto world XY plane
   const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
   const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
 
@@ -131,7 +138,6 @@ function w2c (x, y) {
 }
 
 function c2w (x, y) {
-  // Raycast from camera through screen point onto the z=0 world plane
   const cw = canvas.clientWidth;
   const ch = canvas.clientHeight;
   tmpVec2.set((x / cw) * 2 - 1, -(y / ch) * 2 + 1);
@@ -196,7 +202,8 @@ function buildScene () {
       shininess: 30,
     });
     const mesh = new THREE.Mesh(geom, mat);
-    mesh.position.set(p.x, p.y, 0);
+    // Place planets at their 3D position (z from server, or 0)
+    mesh.position.set(p.x, p.y, p.z || 0);
     mesh.scale.setScalar(p.radius);
     scene.add(mesh);
     planetMeshes.push(mesh);
@@ -210,11 +217,14 @@ function updatePlanets () {
     const p = world.planets[i];
     if (!mesh || !p) continue;
 
-    mesh.position.set(p.x, p.y, 0);
+    mesh.position.set(p.x, p.y, p.z || 0);
     mesh.scale.setScalar(p.radius);
 
+    // Slow rotation for visual interest
+    mesh.rotation.y += 0.001;
+    mesh.rotation.x += 0.0003;
+
     if (p.populated) {
-      // Pulsing emissive for populated planets
       const pulse = 0.5 + Math.sin(now * 0.003) * 0.3;
       const isOwn = player.home && p.nr === player.home.nr;
       if (isOwn) {
@@ -229,7 +239,7 @@ function updatePlanets () {
 }
 
 
-// ── Probes ────────────────────────────────────────────────────────
+// ── Probes with trails ───────────────────────────────────────────
 
 function initProbePool () {
   probeGeom = new THREE.SphereGeometry(1, 8, 6);
@@ -240,23 +250,212 @@ function initProbePool () {
     scene.add(mesh);
     probeMeshes.push(mesh);
   }
+
+  // Trail material (shared)
+  trailMat = new LineMaterial({
+    color: 0xffaa22,
+    linewidth: 2,
+    transparent: true,
+    opacity: 0.6,
+    worldUnits: false,
+  });
+  trailMat.resolution.set(window.innerWidth, window.innerHeight);
 }
+
+// Track which probes have active trail lines
+const probeTrailMap = new Map(); // probe reference -> { line, geom }
 
 function drawProjectiles () {
   const ws = viewSize || 1;
-  const size = ws * 0.004;
+  const size = ws * 0.005;
+  const now = performance.now();
   let idx = 0;
+
+  // Set of currently-active probes
+  const activeProbes = new Set();
+
   for (const probe of world.probes) {
     if (!probe.visible || idx >= PROBE_POOL_SIZE) continue;
+    activeProbes.add(probe);
+
     const mesh = probeMeshes[idx++];
     mesh.visible = true;
-    mesh.position.set(probe.x, probe.y, 0);
+
+    // Probes travel at z=0 (physics plane) but with a slight z variation for visual depth
+    const pz = 0;
+    mesh.position.set(probe.x, probe.y, pz);
     mesh.scale.setScalar(size);
-    const pulse = 0.7 + Math.sin(performance.now() * 0.01 + idx) * 0.3;
+    const pulse = 0.7 + Math.sin(now * 0.01 + idx) * 0.3;
     mesh.material.color.setRGB(pulse, pulse * 0.9, pulse * 0.2);
+
+    // Build trail from the probe's path history
+    if (!probeTrailMap.has(probe)) {
+      const geom = new LineGeometry();
+      geom.setPositions([probe.x, probe.y, pz, probe.x, probe.y, pz]);
+      const line = new Line2(geom, trailMat);
+      line.computeLineDistances();
+      scene.add(line);
+      probeTrailMap.set(probe, { line, geom, lastStep: probe.step });
+    }
+
+    const trail = probeTrailMap.get(probe);
+    // Only update trail geometry when probe has advanced
+    if (probe.step !== trail.lastStep && probe.path) {
+      trail.lastStep = probe.step;
+      // Show last N steps of trail (or all if short)
+      const trailLen = Math.min(probe.step, 80);
+      const startIdx = Math.max(1, probe.step - trailLen);
+      const positions = [];
+      for (let s = startIdx; s < probe.step && s < probe.path.length; s++) {
+        positions.push(probe.path[s][0], probe.path[s][1], 0);
+      }
+      if (positions.length >= 6) {
+        trail.geom.setPositions(positions);
+        trail.line.computeLineDistances();
+        trail.line.material.resolution.set(canvas.clientWidth, canvas.clientHeight);
+        trail.line.visible = true;
+      }
+    }
   }
+
+  // Hide unused probe meshes
   for (let i = idx; i < PROBE_POOL_SIZE; i++) {
     probeMeshes[i].visible = false;
+  }
+
+  // Clean up trails for probes that no longer exist
+  for (const [probe, trail] of probeTrailMap) {
+    if (!activeProbes.has(probe)) {
+      scene.remove(trail.line);
+      trail.geom.dispose();
+      probeTrailMap.delete(probe);
+    }
+  }
+}
+
+
+// ── Impact effects ───────────────────────────────────────────────
+
+function spawnImpact (planetNr, hitX, hitY) {
+  const pIdx = world.planets.findIndex(p => p.nr === planetNr);
+  const p = world.planets[pIdx];
+  if (!p) return;
+
+  const ws = viewSize || 1;
+  const pz = p.z || 0;
+
+  // 1) Expanding shockwave ring
+  const ringGeom = new THREE.RingGeometry(0.01, 0.02, 32);
+  const ringMat = new THREE.MeshBasicMaterial({
+    color: 0xffcc44,
+    transparent: true,
+    opacity: 1,
+    side: THREE.DoubleSide,
+  });
+  const ring = new THREE.Mesh(ringGeom, ringMat);
+  ring.position.set(hitX || p.x, hitY || p.y, pz);
+  ring.lookAt(camera.position);
+  scene.add(ring);
+
+  // 2) Particle burst
+  const particleCount = 30;
+  const pPositions = new Float32Array(particleCount * 3);
+  const pColors = new Float32Array(particleCount * 3);
+  const velocities = [];
+  const cx = hitX || p.x;
+  const cy = hitY || p.y;
+
+  for (let i = 0; i < particleCount; i++) {
+    pPositions[i * 3] = cx;
+    pPositions[i * 3 + 1] = cy;
+    pPositions[i * 3 + 2] = pz;
+
+    // Random orange-yellow-white colors
+    const heat = 0.5 + Math.random() * 0.5;
+    pColors[i * 3] = 1;
+    pColors[i * 3 + 1] = heat * 0.7;
+    pColors[i * 3 + 2] = heat * 0.2;
+
+    // Random velocity in all directions
+    const speed = ws * (0.0005 + Math.random() * 0.002);
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.random() * Math.PI;
+    velocities.push({
+      vx: speed * Math.sin(phi) * Math.cos(theta),
+      vy: speed * Math.sin(phi) * Math.sin(theta),
+      vz: speed * Math.cos(phi),
+    });
+  }
+
+  const pGeom = new THREE.BufferGeometry();
+  pGeom.setAttribute('position', new THREE.Float32BufferAttribute(pPositions, 3));
+  pGeom.setAttribute('color', new THREE.Float32BufferAttribute(pColors, 3));
+
+  const pMat = new THREE.PointsMaterial({
+    size: ws * 0.008,
+    vertexColors: true,
+    sizeAttenuation: true,
+    transparent: true,
+    opacity: 1,
+  });
+
+  const particles = new THREE.Points(pGeom, pMat);
+  scene.add(particles);
+
+  impacts.push({
+    ring,
+    ringMat,
+    ringGeom,
+    particles,
+    pGeom,
+    pMat,
+    velocities,
+    startTime: performance.now(),
+    maxRingSize: p.radius * 4,
+    pz,
+  });
+}
+
+function updateImpacts () {
+  const now = performance.now();
+  for (let i = impacts.length - 1; i >= 0; i--) {
+    const imp = impacts[i];
+    const elapsed = now - imp.startTime;
+    const t = elapsed / IMPACT_DURATION;
+
+    if (t >= 1) {
+      // Clean up
+      scene.remove(imp.ring);
+      imp.ringGeom.dispose();
+      imp.ringMat.dispose();
+      scene.remove(imp.particles);
+      imp.pGeom.dispose();
+      imp.pMat.dispose();
+      impacts.splice(i, 1);
+      continue;
+    }
+
+    // Expand shockwave ring
+    const ringScale = imp.maxRingSize * t;
+    imp.ring.scale.set(ringScale, ringScale, ringScale);
+    imp.ringMat.opacity = 1 - t;
+    imp.ring.lookAt(camera.position);
+
+    // Animate particles
+    const posArr = imp.pGeom.attributes.position.array;
+    for (let j = 0; j < imp.velocities.length; j++) {
+      const v = imp.velocities[j];
+      posArr[j * 3] += v.vx;
+      posArr[j * 3 + 1] += v.vy;
+      posArr[j * 3 + 2] += v.vz;
+      // Slow down over time
+      v.vx *= 0.98;
+      v.vy *= 0.98;
+      v.vz *= 0.98;
+    }
+    imp.pGeom.attributes.position.needsUpdate = true;
+    imp.pMat.opacity = 1 - t * t;
+    imp.pMat.size *= 0.995;
   }
 }
 
@@ -343,6 +542,7 @@ function drawPlayer () {
   if (!player.home) return;
 
   const { x: hx, y: hy, radius: hr } = player.home;
+  const hz = player.home.z || 0;
   const angle = player.angle;
   const ws = viewSize || 1;
   const cosA = Math.cos(angle);
@@ -360,12 +560,13 @@ function drawPlayer () {
   const startDist = hr * 1.5;
   const cx = hx + cosA * (startDist + len / 2);
   const cy = hy + sinA * (startDist + len / 2);
-  arrowShaft.position.set(cx, cy, 0.01);
+  // Arrow floats slightly above the planet's Z
+  arrowShaft.position.set(cx, cy, hz + 0.01);
   arrowShaft.scale.set(len, thickness, 1);
   arrowShaft.rotation.z = angle;
 
   const tipDist = startDist + len;
-  arrowHead.position.set(hx + cosA * tipDist, hy + sinA * tipDist, 0.01);
+  arrowHead.position.set(hx + cosA * tipDist, hy + sinA * tipDist, hz + 0.01);
   arrowHead.scale.setScalar(headSize);
   arrowHead.rotation.z = angle;
 }
@@ -373,11 +574,14 @@ function drawPlayer () {
 
 // ── Flash effect on impact ────────────────────────────────────────
 
-function flashPlanet (planetNr) {
+function flashPlanet (planetNr, hitX, hitY) {
   const idx = world.planets.findIndex(p => p.nr === planetNr);
   if (idx === -1 || !planetMeshes[idx]) return;
   planetMeshes[idx].material.emissive.set(0xffffff);
   planetFlashes.push({ mesh: planetMeshes[idx], startTime: performance.now() });
+
+  // Spawn impact particles
+  spawnImpact(planetNr, hitX, hitY);
 }
 
 function updateFlashes () {
@@ -408,6 +612,7 @@ function render () {
   drawPlayer();
   drawProjectiles();
   updateFlashes();
+  updateImpacts();
   renderer.render(scene, camera);
 }
 
@@ -422,6 +627,7 @@ function resize () {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   if (aimLine) aimLine.material.resolution.set(w, h);
+  if (trailMat) trailMat.resolution.set(w, h);
 }
 
 
@@ -441,6 +647,9 @@ function clearScene () {
   planetMeshes = [];
   probeMeshes = [];
   planetFlashes.length = 0;
+  impacts.length = 0;
+  probeTrailMap.clear();
+  trailLines = [];
   lastAimRef = null;
   starField = null;
 }

@@ -54,7 +54,7 @@ socket.on('probeImpact', data => {
   if (target) {
     target.resources = data.targetResources;
   }
-  gfx.flashPlanet(data.targetPlanetNr);
+  gfx.flashPlanet(data.targetPlanetNr, data.hitX, data.hitY);
   audio.playImpact();
 });
 
