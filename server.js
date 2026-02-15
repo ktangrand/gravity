@@ -7,6 +7,10 @@ const gameMap = require('./game-map.js');
 const app = express();
 const staticDir = process.env.NODE_ENV === 'production' ? 'dist' : 'public';
 app.use(express.static(staticDir));
+// Fallback: serve public/ if dist/ doesn't have the file (e.g. build step not run)
+if (staticDir === 'dist') {
+  app.use(express.static('public'));
+}
 const server = http.createServer(app);
 const io = socketIO(server);
 const PORT = process.env.PORT || 3000;
@@ -27,6 +31,7 @@ const GENERATE_COOLDOWN = 10000; // min ms between world regenerations
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
+    ready: world !== null,
     players: Object.keys(players).length,
     uptime: process.uptime()
   });
@@ -46,6 +51,10 @@ let lastGenerateTime = 0;
 // =================================================================
 
 function sendWorld (socket) {
+  if (!world) {
+    socket.emit('serverFull', { message: 'Server is starting up, please try again' });
+    return;
+  }
   const p = gameMap.findAHome(world);
   if (!p) {
     socket.emit('serverFull', { message: 'No available planets' });
@@ -278,14 +287,17 @@ process.on('unhandledRejection', (reason) => {
 // =================================================================
 
 let worldSize = 1;
-let world = gameMap.createWorld(worldSize, { planetCount: 100, gravityScale: 1 });
+let world = null;
 const players = {};
 
 io.on('connection', newPlayer);
 
-// Sync game state periodically
-setInterval(pushGameState, 5000);
-
+// Start listening FIRST so the health check responds during world generation
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  // Generate world after server is up (heavy computation)
+  world = gameMap.createWorld(worldSize, { planetCount: 100, gravityScale: 1 });
+  console.log('World generated');
+  // Sync game state periodically
+  setInterval(pushGameState, 5000);
 });
