@@ -17,7 +17,7 @@ let lastFrameTime = 0;
 
 const titleScreen = document.getElementById('title-screen');
 const loadingScreen = document.getElementById('loading-screen');
-const instructionsScreen = document.getElementById('instructions');
+const helpScreen = document.getElementById('help-screen');
 const hud = document.getElementById('HUD');
 
 const muteBtn = document.getElementById('mute-btn');
@@ -32,9 +32,13 @@ document.getElementById('play-btn').addEventListener('click', () => {
   socket.connect();
 });
 
-document.getElementById('instructions-dismiss').addEventListener('click', () => {
-  instructionsScreen.style.display = 'none';
-  localStorage.setItem('rkv-instructions-seen', '1');
+document.getElementById('help-btn').addEventListener('click', () => {
+  helpScreen.style.display = helpScreen.style.display === 'flex' ? 'none' : 'flex';
+});
+
+document.getElementById('help-dismiss').addEventListener('click', () => {
+  helpScreen.style.display = 'none';
+  localStorage.setItem('rkv-help-seen', '1');
 });
 
 // ===== Socket events =====
@@ -292,9 +296,9 @@ function initGame (data) {
   // Start ambient music
   audio.startAmbient();
 
-  // Show instructions on first visit
-  if (!localStorage.getItem('rkv-instructions-seen')) {
-    instructionsScreen.style.display = 'flex';
+  // Show help screen on first visit
+  if (!localStorage.getItem('rkv-help-seen')) {
+    helpScreen.style.display = 'flex';
   }
 
   canvas.addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
