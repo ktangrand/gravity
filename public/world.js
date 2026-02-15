@@ -155,6 +155,7 @@ function setWorldSize (size) {
   for (const p of planets) {
     p.x *= factor;
     p.y *= factor;
+    if (p.z !== undefined) p.z *= factor;
     p.radius *= factor;
   }
   recalcField();

@@ -63,7 +63,11 @@ function createWorld (size = 1, options = {}) {
   const gravityScale = options.gravityScale || 1;
   let nr = 1;
 
-  // Check minimum distance from existing planets
+  // Z-depth range: planets distributed within ±zRange of z=0
+  // Physics stays on XY plane, Z is purely visual
+  const zRange = worldSize * 0.4;
+
+  // Check minimum distance from existing planets (XY only, for physics)
   function tooClose (x, y, minDist) {
     for (const p of planets) {
       const dx = p.x - x;
@@ -83,6 +87,18 @@ function createWorld (size = 1, options = {}) {
     return { x: Math.random() * worldSize, y: Math.random() * worldSize };
   }
 
+  // Assign a Z coordinate based on planet type and randomness
+  function assignZ (type, radius) {
+    // Stars stay near z=0 (they're gravity anchors)
+    if (type === 4) return (Math.random() - 0.5) * zRange * 0.15;
+    // Gas giants spread moderately
+    if (type === 5) return (Math.random() - 0.5) * zRange * 0.6;
+    // Regular planets spread across the full Z range
+    // Smaller planets can go further from the plane
+    const spread = 0.5 + Math.random() * 0.5;
+    return (Math.random() - 0.5) * zRange * 2 * spread;
+  }
+
   // ── Stars (1-2 massive gravity anchors) ──
   const starCount = Math.random() < 0.6 ? 1 : 2;
   for (let i = 0; i < starCount; i++) {
@@ -90,7 +106,8 @@ function createWorld (size = 1, options = {}) {
     const pos = starCount === 1
       ? { x: worldSize * (0.35 + Math.random() * 0.3), y: worldSize * (0.35 + Math.random() * 0.3) }
       : placeWithMargin(props.radius);
-    planets.push({ x: pos.x, y: pos.y, populated: null, nr: nr++, ...props });
+    const z = assignZ(4, props.radius);
+    planets.push({ x: pos.x, y: pos.y, z, populated: null, nr: nr++, ...props });
   }
 
   // ── Gas Giants (2-5 large bodies) ──
@@ -98,7 +115,8 @@ function createWorld (size = 1, options = {}) {
   for (let i = 0; i < giantCount; i++) {
     const props = generatePlanet(5);
     const pos = placeWithMargin(props.radius);
-    planets.push({ x: pos.x, y: pos.y, populated: null, nr: nr++, ...props });
+    const z = assignZ(5, props.radius);
+    planets.push({ x: pos.x, y: pos.y, z, populated: null, nr: nr++, ...props });
   }
 
   // ── Clusters (groups of smaller planets) ──
@@ -108,6 +126,7 @@ function createWorld (size = 1, options = {}) {
     clusters.push({
       cx: worldSize * (0.1 + Math.random() * 0.8),
       cy: worldSize * (0.1 + Math.random() * 0.8),
+      cz: (Math.random() - 0.5) * zRange,  // clusters have a Z center too
       spread: worldSize * (0.03 + Math.random() * 0.08),
     });
   }
@@ -129,19 +148,21 @@ function createWorld (size = 1, options = {}) {
 
     let placed = false;
     for (let attempt = 0; attempt < 30; attempt++) {
-      let x, y;
+      let x, y, z;
       if (Math.random() < 0.4 && clusters.length > 0) {
         const cl = clusters[Math.floor(Math.random() * clusters.length)];
         const angle = Math.random() * Math.PI * 2;
         const dist = Math.random() * cl.spread;
         x = Math.max(props.radius, Math.min(worldSize - props.radius, cl.cx + Math.cos(angle) * dist));
         y = Math.max(props.radius, Math.min(worldSize - props.radius, cl.cy + Math.sin(angle) * dist));
+        z = cl.cz + (Math.random() - 0.5) * cl.spread * 2;
       } else {
         x = props.radius + Math.random() * (worldSize - props.radius * 2);
         y = props.radius + Math.random() * (worldSize - props.radius * 2);
+        z = assignZ(actualType, props.radius);
       }
       if (!tooClose(x, y, props.radius)) {
-        planets.push({ x, y, populated: null, nr: nr++, ...props });
+        planets.push({ x, y, z, populated: null, nr: nr++, ...props });
         placed = true;
         break;
       }
