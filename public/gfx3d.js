@@ -7,11 +7,15 @@ import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 
 // ── State ──────────────────────────────────────────────────────────
 let camera, renderer, canvas, scene;
-let zoom = 1;
 let viewSize = 1;
 let planetMeshes = [];
-let planetGlows = [];
 const planetFlashes = [];
+
+// Camera orbit parameters
+let focusX = 0.5, focusY = 0.5;
+let camDist = 1.5;
+let camPhi = 1.0;     // tilt from vertical (rad) — ~57°, range [0.2, 1.45]
+let camTheta = 0;      // azimuthal rotation around vertical
 
 // Probe pool
 const PROBE_POOL_SIZE = 100;
@@ -29,63 +33,87 @@ let arrowGroup, arrowShaft, arrowHead, arrowShaftMat, arrowHeadMat;
 // Background
 let starField;
 
-// Reusable colors
+// Reusable objects
 const colorGreen = new THREE.Color(0x00ff00);
 const colorRed = new THREE.Color(0xff0000);
 const tmpColor = new THREE.Color();
+const worldPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+const raycaster = new THREE.Raycaster();
+const tmpVec2 = new THREE.Vector2();
 
-// Planet palette (index matches server-side color type)
+// Planet palette
 const PLANET_COLORS = [
-  0x2ecc71, // 0 Terrestrial – emerald green
-  0x5dade2, // 1 Ice Giant – sky blue
-  0xaab7b8, // 2 Dense Metal – silver
-  0xe88dd6, // 3 Nebula – vibrant pink
-  0xf5c842, // 4 Star – gold
-  0xe67e22, // 5 Gas Giant – orange
+  0x2ecc71, // 0 Terrestrial
+  0x5dade2, // 1 Ice Giant
+  0xaab7b8, // 2 Dense Metal
+  0xe88dd6, // 3 Nebula
+  0xf5c842, // 4 Star
+  0xe67e22, // 5 Gas Giant
 ];
 const PLANET_EMISSIVE = [
-  0x0a2e14, // Terrestrial
-  0x0a1a2e, // Ice Giant
-  0x151515, // Dense Metal
-  0x2e0a20, // Nebula
-  0x4a3a08, // Star – warm glow
-  0x3a1f08, // Gas Giant – warm glow
+  0x0a2e14, 0x0a1a2e, 0x151515, 0x2e0a20, 0x4a3a08, 0x3a1f08,
 ];
 
 
 // ── Camera ─────────────────────────────────────────────────────────
 
+function updateCameraPosition () {
+  camera.position.set(
+    focusX + camDist * Math.sin(camPhi) * Math.cos(camTheta),
+    focusY + camDist * Math.sin(camPhi) * Math.sin(camTheta),
+    camDist * Math.cos(camPhi),
+  );
+  camera.lookAt(focusX, focusY, 0);
+}
+
 function setCamera (x, y) {
-  camera.position.x = x;
-  camera.position.y = y;
+  focusX = x;
+  focusY = y;
+  updateCameraPosition();
 }
 
 function panCamera (dx, dy) {
-  // Zoom-aware: when zoomed in each pixel maps to less world space
-  // Use clientHeight (CSS pixels) not canvas.height (render buffer, affected by DPR)
-  const scale = viewSize / (canvas.clientHeight * zoom);
-  camera.position.x -= dx * scale;
-  camera.position.y += dy * scale;
+  // Scale pixel movement to world units based on camera distance
+  const vFov = camera.fov * Math.PI / 180;
+  const worldH = 2 * camDist * Math.tan(vFov / 2);
+  const scale = worldH / canvas.clientHeight;
+
+  // Camera right & up vectors projected onto world XY plane
+  const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+  const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+
+  focusX -= (dx * right.x - dy * up.x) * scale;
+  focusY -= (dx * right.y - dy * up.y) * scale;
+
+  updateCameraPosition();
 }
 
 function zoomCamera (delta) {
-  // delta > 1 on scroll-down → zoom OUT (smaller camera.zoom)
-  zoom /= delta;
-  zoom = Math.min(Math.max(zoom, 0.3), 30);
-  camera.zoom = zoom;
-  camera.updateProjectionMatrix();
+  camDist *= delta;
+  const ws = viewSize || 1;
+  camDist = Math.max(ws * 0.05, Math.min(ws * 5, camDist));
+  updateCameraPosition();
+}
+
+function rotateCamera (dTheta, dPhi) {
+  if (dTheta) camTheta += dTheta;
+  if (dPhi) camPhi = Math.max(0.2, Math.min(1.45, camPhi + dPhi));
+  updateCameraPosition();
 }
 
 function updateWorldScale () {
   const ws = world.worldSize || 1;
   viewSize = ws;
-  applyFrustum(ws);
-  camera.position.set(ws / 2, ws / 2, 5);
-  zoom = 1;
-  camera.zoom = 1;
+  focusX = ws / 2;
+  focusY = ws / 2;
+  camDist = ws * 1.5;
+  camPhi = 1.0;
+  camTheta = 0;
+  camera.far = ws * 30;
+  camera.near = ws * 0.001;
   camera.updateProjectionMatrix();
+  updateCameraPosition();
 
-  // Rebuild starfield for the new world size
   if (starField) {
     scene.remove(starField);
     starField.geometry.dispose();
@@ -94,56 +122,46 @@ function updateWorldScale () {
   createStarfield(ws);
 }
 
-function applyFrustum (ws) {
-  const aspect = canvas.clientWidth / canvas.clientHeight;
-  camera.left = -ws / 2 * aspect;
-  camera.right = ws / 2 * aspect;
-  camera.top = ws / 2;
-  camera.bottom = -ws / 2;
-}
-
 function w2c (x, y) {
   const v = new THREE.Vector3(x, y, 0);
   v.project(camera);
-  // Use CSS dimensions (clientWidth/Height) – not render buffer (canvas.width/height)
   const cw = canvas.clientWidth;
   const ch = canvas.clientHeight;
-  return [
-    (v.x + 1) / 2 * cw,
-    (-v.y + 1) / 2 * ch,
-  ];
+  return [(v.x + 1) / 2 * cw, (-v.y + 1) / 2 * ch];
 }
 
 function c2w (x, y) {
-  // Input x, y are CSS pixels (clientX/clientY) – use CSS dimensions to normalise
+  // Raycast from camera through screen point onto the z=0 world plane
   const cw = canvas.clientWidth;
   const ch = canvas.clientHeight;
-  const v = new THREE.Vector3(
-    (x / cw) * 2 - 1,
-    -(y / ch) * 2 + 1,
-    0,
-  );
-  v.unproject(camera);
-  return [v.x, v.y];
+  tmpVec2.set((x / cw) * 2 - 1, -(y / ch) * 2 + 1);
+  raycaster.setFromCamera(tmpVec2, camera);
+  const hit = new THREE.Vector3();
+  if (raycaster.ray.intersectPlane(worldPlane, hit)) {
+    return [hit.x, hit.y];
+  }
+  return [focusX, focusY];
 }
 
 
-// ── Starfield background ──────────────────────────────────────────
+// ── Starfield (sphere of stars surrounding the world) ─────────────
 
 function createStarfield (ws) {
-  const count = 700;
+  const count = 2000;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
+  const radius = ws * 12;
 
   for (let i = 0; i < count; i++) {
-    positions[i * 3] = (Math.random() - 0.2) * ws * 1.4;
-    positions[i * 3 + 1] = (Math.random() - 0.2) * ws * 1.4;
-    positions[i * 3 + 2] = -1; // behind everything
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[i * 3]     = ws / 2 + radius * Math.sin(phi) * Math.cos(theta);
+    positions[i * 3 + 1] = ws / 2 + radius * Math.sin(phi) * Math.sin(theta);
+    positions[i * 3 + 2] = radius * Math.cos(phi);
 
     const b = 0.3 + Math.random() * 0.7;
     const tint = Math.random();
-    // Slight blue / warm / white tints
-    colors[i * 3] = tint < 0.3 ? b * 0.8 : b;
+    colors[i * 3]     = tint < 0.3 ? b * 0.8 : b;
     colors[i * 3 + 1] = b * (tint > 0.6 ? 1 : 0.95);
     colors[i * 3 + 2] = tint < 0.3 ? b : b * 0.85;
   }
@@ -153,11 +171,11 @@ function createStarfield (ws) {
   geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
   const mat = new THREE.PointsMaterial({
-    size: ws * 0.003,
+    size: ws * 0.02,
     vertexColors: true,
     sizeAttenuation: true,
     transparent: true,
-    opacity: 0.8,
+    opacity: 0.85,
   });
 
   starField = new THREE.Points(geom, mat);
@@ -170,13 +188,11 @@ function createStarfield (ws) {
 function buildScene () {
   const geom = new THREE.SphereGeometry(1, 32, 24);
   planetMeshes = [];
-  planetGlows = [];
 
   for (const p of world.planets) {
-    // Planet body – smooth Phong shading with subtle emissive glow
     const mat = new THREE.MeshPhongMaterial({
-      color: PLANET_COLORS[p.color],
-      emissive: PLANET_EMISSIVE[p.color],
+      color: PLANET_COLORS[p.color] || 0xffffff,
+      emissive: PLANET_EMISSIVE[p.color] || 0x000000,
       shininess: 30,
     });
     const mesh = new THREE.Mesh(geom, mat);
@@ -184,20 +200,6 @@ function buildScene () {
     mesh.scale.setScalar(p.radius);
     scene.add(mesh);
     planetMeshes.push(mesh);
-
-    // Pulsing glow ring (only visible when populated)
-    const ringGeom = new THREE.RingGeometry(1.3, 1.7, 32);
-    const ringMat = new THREE.MeshBasicMaterial({
-      color: 0x00ff88,
-      transparent: true,
-      opacity: 0,
-      side: THREE.DoubleSide,
-    });
-    const ring = new THREE.Mesh(ringGeom, ringMat);
-    ring.position.set(p.x, p.y, 0.01);
-    ring.scale.setScalar(p.radius);
-    scene.add(ring);
-    planetGlows.push(ring);
   }
 }
 
@@ -205,24 +207,23 @@ function updatePlanets () {
   const now = performance.now();
   for (let i = 0; i < planetMeshes.length; i++) {
     const mesh = planetMeshes[i];
-    const glow = planetGlows[i];
     const p = world.planets[i];
     if (!mesh || !p) continue;
 
     mesh.position.set(p.x, p.y, 0);
     mesh.scale.setScalar(p.radius);
 
-    if (glow) {
-      glow.position.set(p.x, p.y, 0.01);
-      glow.scale.setScalar(p.radius);
-      if (p.populated) {
-        glow.material.opacity = 0.35 + Math.sin(now * 0.003) * 0.15;
-        glow.material.color.setHex(
-          player.home && p.nr === player.home.nr ? 0x00ff88 : 0xff4444,
-        );
+    if (p.populated) {
+      // Pulsing emissive for populated planets
+      const pulse = 0.5 + Math.sin(now * 0.003) * 0.3;
+      const isOwn = player.home && p.nr === player.home.nr;
+      if (isOwn) {
+        mesh.material.emissive.setRGB(0, pulse * 0.5, pulse * 0.3);
       } else {
-        glow.material.opacity = 0;
+        mesh.material.emissive.setRGB(pulse * 0.5, 0, 0);
       }
+    } else {
+      mesh.material.emissive.set(PLANET_EMISSIVE[p.color] || 0);
     }
   }
 }
@@ -231,7 +232,7 @@ function updatePlanets () {
 // ── Probes ────────────────────────────────────────────────────────
 
 function initProbePool () {
-  probeGeom = new THREE.CircleGeometry(1, 12);
+  probeGeom = new THREE.SphereGeometry(1, 8, 6);
   for (let i = 0; i < PROBE_POOL_SIZE; i++) {
     const mat = new THREE.MeshBasicMaterial({ color: 0xffee44 });
     const mesh = new THREE.Mesh(probeGeom, mat);
@@ -242,16 +243,15 @@ function initProbePool () {
 }
 
 function drawProjectiles () {
-  const ws = world.worldSize || 1;
-  const size = ws * 0.005;
+  const ws = viewSize || 1;
+  const size = ws * 0.004;
   let idx = 0;
   for (const probe of world.probes) {
     if (!probe.visible || idx >= PROBE_POOL_SIZE) continue;
     const mesh = probeMeshes[idx++];
     mesh.visible = true;
-    mesh.position.set(probe.x, probe.y, 0.05);
+    mesh.position.set(probe.x, probe.y, 0);
     mesh.scale.setScalar(size);
-    // Pulsing yellow-orange glow
     const pulse = 0.7 + Math.sin(performance.now() * 0.01 + idx) * 0.3;
     mesh.material.color.setRGB(pulse, pulse * 0.9, pulse * 0.2);
   }
@@ -261,7 +261,7 @@ function drawProjectiles () {
 }
 
 
-// ── Aim trajectory (thick dashed line) ────────────────────────────
+// ── Aim trajectory (thick dashed line on the world plane) ─────────
 
 function initAimLine () {
   aimGeometry = new LineGeometry();
@@ -269,7 +269,7 @@ function initAimLine () {
 
   const mat = new LineMaterial({
     color: 0x44ff88,
-    linewidth: 3, // screen-space pixels
+    linewidth: 3,
     transparent: true,
     opacity: 0.85,
     worldUnits: false,
@@ -292,7 +292,6 @@ function drawAim () {
     return;
   }
 
-  // Only rebuild geometry when aim data actually changes
   if (points === lastAimRef) return;
   lastAimRef = points;
 
@@ -300,30 +299,29 @@ function drawAim () {
   const len = Math.min(points.length, AIM_MAX_POINTS);
   const positions = [];
   for (let i = 0; i < len; i++) {
-    positions.push(points[i][0], points[i][1], 0.02);
+    positions.push(points[i][0], points[i][1], 0.005);
   }
 
   aimGeometry.setPositions(positions);
   aimLine.computeLineDistances();
-  aimLine.material.resolution.set(canvas.width, canvas.height);
+  aimLine.material.resolution.set(canvas.clientWidth, canvas.clientHeight);
 }
 
 
-// ── Player direction arrow ────────────────────────────────────────
+// ── Player direction arrow (flat on the world plane) ──────────────
 
 function initPlayerArrow () {
   arrowGroup = new THREE.Group();
 
-  // Shaft – flat rectangle
   const shaftGeom = new THREE.PlaneGeometry(1, 1);
   arrowShaftMat = new THREE.MeshBasicMaterial({
     color: 0x00ff00,
     transparent: true,
     opacity: 0.9,
+    side: THREE.DoubleSide,
   });
   arrowShaft = new THREE.Mesh(shaftGeom, arrowShaftMat);
 
-  // Head – triangle pointing right (will be rotated)
   const headShape = new THREE.Shape();
   headShape.moveTo(0, -0.5);
   headShape.lineTo(1, 0);
@@ -333,6 +331,7 @@ function initPlayerArrow () {
     color: 0x00ff00,
     transparent: true,
     opacity: 0.9,
+    side: THREE.DoubleSide,
   });
   arrowHead = new THREE.Mesh(new THREE.ShapeGeometry(headShape), arrowHeadMat);
 
@@ -345,32 +344,28 @@ function drawPlayer () {
 
   const { x: hx, y: hy, radius: hr } = player.home;
   const angle = player.angle;
-  const ws = world.worldSize || 1;
+  const ws = viewSize || 1;
   const cosA = Math.cos(angle);
   const sinA = Math.sin(angle);
 
-  // Length grows with power, capped
   const maxLen = ws * 0.12;
   const len = Math.min(maxLen, ws * 0.025 * player.power);
   const thickness = ws * 0.005;
   const headSize = ws * 0.015;
 
-  // Green → Red colour ramp with power
   tmpColor.copy(colorGreen).lerp(colorRed, len / maxLen);
   arrowShaftMat.color.copy(tmpColor);
   arrowHeadMat.color.copy(tmpColor);
 
-  // Shaft
   const startDist = hr * 1.5;
   const cx = hx + cosA * (startDist + len / 2);
   const cy = hy + sinA * (startDist + len / 2);
-  arrowShaft.position.set(cx, cy, 0.07);
+  arrowShaft.position.set(cx, cy, 0.01);
   arrowShaft.scale.set(len, thickness, 1);
   arrowShaft.rotation.z = angle;
 
-  // Arrow head
   const tipDist = startDist + len;
-  arrowHead.position.set(hx + cosA * tipDist, hy + sinA * tipDist, 0.07);
+  arrowHead.position.set(hx + cosA * tipDist, hy + sinA * tipDist, 0.01);
   arrowHead.scale.setScalar(headSize);
   arrowHead.rotation.z = angle;
 }
@@ -391,10 +386,9 @@ function updateFlashes () {
     const f = planetFlashes[i];
     const elapsed = now - f.startTime;
     if (elapsed >= 400) {
-      // Reset to planet's default emissive
       const pIdx = planetMeshes.indexOf(f.mesh);
       if (pIdx !== -1 && world.planets[pIdx]) {
-        f.mesh.material.emissive.set(PLANET_EMISSIVE[world.planets[pIdx].color]);
+        f.mesh.material.emissive.set(PLANET_EMISSIVE[world.planets[pIdx].color] || 0);
       } else {
         f.mesh.material.emissive.set(0x000000);
       }
@@ -424,8 +418,8 @@ function resize () {
   if (!canvas || !renderer || !camera) return;
   const w = window.innerWidth;
   const h = window.innerHeight;
-  renderer.setSize(w, h); // sets CSS + render-buffer sizes (respects pixelRatio)
-  applyFrustum(viewSize);
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
   camera.updateProjectionMatrix();
   if (aimLine) aimLine.material.resolution.set(w, h);
 }
@@ -445,7 +439,6 @@ function clearScene () {
     }
   }
   planetMeshes = [];
-  planetGlows = [];
   probeMeshes = [];
   planetFlashes.length = 0;
   lastAimRef = null;
@@ -457,38 +450,37 @@ function init () {
   const h = window.innerHeight;
   canvas = document.getElementById('gameCanvas');
 
-  // Reuse WebGL renderer across re-inits (avoids context limit)
   if (!renderer) {
     renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   }
-  renderer.setSize(w, h); // handles both CSS and buffer dimensions
+  renderer.setSize(w, h);
 
-  // Tear down previous scene if re-initialising
   if (scene) clearScene();
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x050510);
+  scene.background = new THREE.Color(0x030308);
 
-  // Orthographic camera – proper 2D top-down view
+  // ── Perspective camera with orbital controls ──
   const ws = world.worldSize || 1;
   viewSize = ws;
-  const aspect = w / h;
-  camera = new THREE.OrthographicCamera(
-    -ws / 2 * aspect, ws / 2 * aspect,
-    ws / 2, -ws / 2,
-    -10, 10,
-  );
-  camera.position.set(ws / 2, ws / 2, 5);
-  zoom = 1;
-  camera.zoom = 1;
+  camera = new THREE.PerspectiveCamera(50, w / h, ws * 0.001, ws * 30);
+  focusX = ws / 2;
+  focusY = ws / 2;
+  camDist = ws * 1.5;
+  camPhi = 1.0;   // ~57° tilt from vertical
+  camTheta = 0;
+  updateCameraPosition();
 
-  // Lighting
-  scene.add(new THREE.AmbientLight(0x404060));
-  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-  dir.position.set(1, 1, 5);
-  scene.add(dir);
+  // ── Lighting ──
+  scene.add(new THREE.AmbientLight(0x303050, 1.5));
+  const sun = new THREE.DirectionalLight(0xffeedd, 1.0);
+  sun.position.set(ws, ws * 0.5, ws * 2);
+  scene.add(sun);
+  const fill = new THREE.DirectionalLight(0x334466, 0.3);
+  fill.position.set(-ws, -ws, -ws * 0.5);
+  scene.add(fill);
 
-  // Build world
+  // ── Build world ──
   createStarfield(ws);
   buildScene();
   initProbePool();
@@ -499,6 +491,6 @@ function init () {
 
 
 export {
-  init, setCamera, panCamera, zoomCamera, render,
+  init, setCamera, panCamera, zoomCamera, rotateCamera, render,
   flashPlanet, w2c, c2w, resize, updateWorldScale, updatePlanets,
 };

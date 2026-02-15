@@ -120,16 +120,34 @@ function keyDownEvent ({ key }) {
     player.adjustPower(0.995);
   } else if (['f'].includes(key)) {
     fireProbe();
+  } else if (key === 'q') {
+    gfx.rotateCamera(-0.1);
+  } else if (key === 'e') {
+    gfx.rotateCamera(0.1);
   }
 }
 
 function mouseDown (event) {
   if (event.button === 0) {
+    // Left-click: pan
     event.preventDefault();
     canvas.addEventListener('mouseup', stopDrag);
     canvas.addEventListener('mouseleave', stopDrag);
     canvas.addEventListener('mousemove', drag);
+  } else if (event.button === 1) {
+    // Middle-click: orbit camera
+    event.preventDefault();
+    const orbit = (e) => gfx.rotateCamera(e.movementX * 0.005, -e.movementY * 0.005);
+    const stop = () => {
+      canvas.removeEventListener('mousemove', orbit);
+      canvas.removeEventListener('mouseup', stop);
+      canvas.removeEventListener('mouseleave', stop);
+    };
+    canvas.addEventListener('mousemove', orbit);
+    canvas.addEventListener('mouseup', stop);
+    canvas.addEventListener('mouseleave', stop);
   } else if (event.button === 2) {
+    // Right-click: aim
     aiming = true;
     const iId = setInterval(aim, 1000 / 60);
     const stop = () => {
