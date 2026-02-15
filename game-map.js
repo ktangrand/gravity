@@ -112,7 +112,7 @@ function createWorld (size = 1, options = {}) {
     });
   }
 
-  // ── Regular planets ──
+  // ── Regular planets (with overlap check) ──
   const regularCount = planetCount - starCount - giantCount;
   for (let i = 0; i < regularCount; i++) {
     // 55% terrestrial, 18% ice, 12% dense metal, 10% nebula, 5% bonus large
@@ -127,20 +127,27 @@ function createWorld (size = 1, options = {}) {
       props.mass *= boost * boost;
     }
 
-    let x, y;
-    if (Math.random() < 0.4 && clusters.length > 0) {
-      // Place near a cluster centre
-      const cl = clusters[Math.floor(Math.random() * clusters.length)];
-      const angle = Math.random() * Math.PI * 2;
-      const dist = Math.random() * cl.spread;
-      x = Math.max(props.radius, Math.min(worldSize - props.radius, cl.cx + Math.cos(angle) * dist));
-      y = Math.max(props.radius, Math.min(worldSize - props.radius, cl.cy + Math.sin(angle) * dist));
-    } else {
-      x = props.radius + Math.random() * (worldSize - props.radius * 2);
-      y = props.radius + Math.random() * (worldSize - props.radius * 2);
+    let placed = false;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      let x, y;
+      if (Math.random() < 0.4 && clusters.length > 0) {
+        const cl = clusters[Math.floor(Math.random() * clusters.length)];
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.random() * cl.spread;
+        x = Math.max(props.radius, Math.min(worldSize - props.radius, cl.cx + Math.cos(angle) * dist));
+        y = Math.max(props.radius, Math.min(worldSize - props.radius, cl.cy + Math.sin(angle) * dist));
+      } else {
+        x = props.radius + Math.random() * (worldSize - props.radius * 2);
+        y = props.radius + Math.random() * (worldSize - props.radius * 2);
+      }
+      if (!tooClose(x, y, props.radius)) {
+        planets.push({ x, y, populated: null, nr: nr++, ...props });
+        placed = true;
+        break;
+      }
     }
-
-    planets.push({ x, y, populated: null, nr: nr++, ...props });
+    // Skip planet if no non-overlapping position found after 30 tries
+    if (!placed) continue;
   }
 
   // ── Gravity field ──
