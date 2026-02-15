@@ -9,6 +9,7 @@ const STEP_DURATION = 1 / 60; // seconds per path step
 let fow;
 let fowView;
 const fowResolution = 32;
+let onProbeHitCb = null;
 
 function initWorld (_world) {
   let field;
@@ -45,7 +46,7 @@ function calculateAim (home, angle, power) {
 
 function gravity (x, y) {
   function getf (xi, yi) {
-    if (xi >= fieldResolution || xi >= fieldResolution) {
+    if (xi >= fieldResolution || yi >= fieldResolution) {
       return [0, 0];
     }
     const idx = ((yi | 0) * fieldResolution + (xi | 0)) * 4;
@@ -144,6 +145,10 @@ function recalcField () {
   fieldY = fy;
 }
 
+function onProbeHit (cb) {
+  onProbeHitCb = cb;
+}
+
 function setWorldSize (size) {
   const factor = size / worldSize;
   worldSize = size;
@@ -191,6 +196,14 @@ function updateProbes (dt = STEP_DURATION) {
             break;
           }
         }
+        if (target && onProbeHitCb) {
+          onProbeHitCb({
+            targetPlanetNr: target.nr,
+            sourcePlanetNr: probe.start.nr,
+            hitX: x,
+            hitY: y
+          });
+        }
         probe.done = true;
         break;
       }
@@ -217,6 +230,7 @@ export {
   calculateAim,
   calculateFOW,
   isInFOW,
+  onProbeHit,
   planets,
   probes,
   launchProbe,

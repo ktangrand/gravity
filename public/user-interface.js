@@ -1,23 +1,19 @@
-const hudElm = document.getElementById('HUD');
-const readOutsElm = document.createElement('table');
-const displayElms = {};
-
-for (const disp of ['power', 'angle', 'titanium', 'antimatter', 'metamaterials']) {
-  const rowElm = document.createElement('tr');
-  const descElm = document.createElement('td');
-  descElm.textContent = disp.charAt(0).toUpperCase() + disp.slice(1);
-  displayElms[disp] = document.createElement('td');
-  rowElm.appendChild(descElm);
-  rowElm.appendChild(displayElms[disp]);
-  readOutsElm.appendChild(rowElm);
-  hudElm.appendChild(readOutsElm);
-}
+const displayElms = {
+  power: document.getElementById('val-power'),
+  angle: document.getElementById('val-angle'),
+  titanium: document.getElementById('val-titanium'),
+  antimatter: document.getElementById('val-antimatter'),
+  metamaterials: document.getElementById('val-metamaterials')
+};
 
 const rangeElm = document.getElementById('worldSizeRange');
 const numberElm = document.getElementById('worldSizeNumber');
 const planetCountElm = document.getElementById('planetCountNumber');
 const gravityScaleElm = document.getElementById('gravityScale');
 const applyElm = document.getElementById('applyWorldSize');
+const settingsPanel = document.getElementById('worldSizeControl');
+const toggleSettingsBtn = document.getElementById('toggle-settings-btn');
+
 let worldSizeChangeCb = null;
 let worldGenerateCb = null;
 
@@ -47,6 +43,11 @@ applyElm.addEventListener('click', () => {
   }
 });
 
+toggleSettingsBtn.addEventListener('click', () => {
+  const visible = settingsPanel.style.display !== 'none';
+  settingsPanel.style.display = visible ? 'none' : 'flex';
+});
+
 function onWorldSizeChange (cb) {
   worldSizeChangeCb = cb;
 }
@@ -56,11 +57,34 @@ function onGenerateWorld (cb) {
 }
 
 function showValue (name, value) {
-  displayElms[name].textContent = value;
+  if (displayElms[name]) {
+    displayElms[name].textContent = value;
+  }
+}
+
+function showNotification (message) {
+  const el = document.createElement('div');
+  el.className = 'notification';
+  el.textContent = message;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function showOverlay (title, message) {
+  let overlay = document.getElementById('game-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'game-overlay';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `<h1>${title}</h1><p>${message}</p>`;
+  overlay.style.display = 'flex';
 }
 
 export {
   showValue,
+  showNotification,
+  showOverlay,
   onWorldSizeChange,
   setupWorldSize,
   onGenerateWorld
